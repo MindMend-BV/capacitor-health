@@ -18,8 +18,8 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "queryWorkouts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "queryAggregated", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "configureBackgroundSync", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "enableBackgroundSync", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "disableBackgroundSync", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startBackgroundSync", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "stopBackgroundSync", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getBackgroundSyncStatus", returnType: CAPPluginReturnPromise)
     ]
 
@@ -215,24 +215,37 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
 
     @objc func configureBackgroundSync(_ call: CAPPluginCall) {
         // No-op on iOS for now.
-        call.resolve()
+        call.resolve([
+            "isBgSyncAvailable": false,
+            "isBgPermissionsGranted": false,
+            "isBgSyncScheduled": false
+        ])
     }
 
-    @objc func enableBackgroundSync(_ call: CAPPluginCall) {
+    @objc func startBackgroundSync(_ call: CAPPluginCall) {
         // No-op on iOS for now.
-        call.resolve()
+        call.resolve([
+            "isBgSyncAvailable": false,
+            "isBgPermissionsGranted": false,
+            "isBgSyncScheduled": false
+        ])
     }
 
-    @objc func disableBackgroundSync(_ call: CAPPluginCall) {
+    @objc func stopBackgroundSync(_ call: CAPPluginCall) {
         // No-op on iOS for now.
-        call.resolve()
+        call.resolve([
+            "isBgSyncAvailable": false,
+            "isBgPermissionsGranted": false,
+            "isBgSyncScheduled": false
+        ])
     }
 
     @objc func getBackgroundSyncStatus(_ call: CAPPluginCall) {
         // No-op on iOS for now.
         call.resolve([
             "isBgSyncAvailable": false,
-            "isPermissionsGranted": false
+            "isBgPermissionsGranted": false,
+            "isBgSyncScheduled": false
         ])
     }
 

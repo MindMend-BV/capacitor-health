@@ -29,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @CapacitorPlugin(
     name = "Health",
@@ -56,7 +57,7 @@ class HealthPlugin : Plugin() {
     private var pendingReadTypes: List<HealthDataType> = emptyList()
     private var pendingWriteTypes: List<HealthDataType> = emptyList()
     private var pendingIncludeWorkouts: Boolean = false
-    private var pendingEnableBackgroundSync: Boolean = false
+    private var pendingConfigureBackgroundSync: Boolean = false
 
     override fun handleOnDestroy() {
         super.handleOnDestroy()
@@ -135,9 +136,9 @@ class HealthPlugin : Plugin() {
 
         pluginScope.launch {
             val client = getClientOrReject(call) ?: return@launch
-            if (pendingEnableBackgroundSync) {
-                pendingEnableBackgroundSync = false
-                continueEnableBackgroundSync(call, client)
+            if (pendingConfigureBackgroundSync) {
+                pendingConfigureBackgroundSync = false
+                continueConfigureBackgroundSync(call, client)
             } else {
                 val status = manager.authorizationStatus(client, readTypes, writeTypes, includeWorkouts)
                 call.resolve(status)
@@ -292,31 +293,20 @@ class HealthPlugin : Plugin() {
     @PluginMethod
     fun configureBackgroundSync(call: PluginCall) {
         rejectIfBackgroundSyncUnavailable(call)?.let { return }
-        try {
-            val config = parseBackgroundSyncConfig(call)
-            backgroundPreferences.saveConfig(config)
-            call.resolve()
+        val config = try {
+            parseBackgroundSyncConfig(call)
         } catch (e: Exception) {
             call.reject(e.message ?: "Failed to configure background sync.", null, e)
-        }
-    }
-
-    @PluginMethod
-    fun enableBackgroundSync(call: PluginCall) {
-        rejectIfBackgroundSyncUnavailable(call)?.let { return }
-        val config = try {
-            backgroundPreferences.requireConfig()
-        } catch (e: Exception) {
-            call.reject(e.message ?: "Background sync is not configured.", null, e)
             return
         }
 
+        backgroundPreferences.saveConfig(config)
         pluginScope.launch {
             val client = getClientOrReject(call) ?: return@launch
             val requiredHealthPermissions = manager.permissionsFor(config.dataTypes, emptyList())
             val grantedPermissions = client.permissionController.getGrantedPermissions()
             if (!grantedPermissions.containsAll(requiredHealthPermissions)) {
-                pendingEnableBackgroundSync = true
+                pendingConfigureBackgroundSync = true
                 pendingReadTypes = config.dataTypes
                 pendingWriteTypes = emptyList()
                 pendingIncludeWorkouts = false
@@ -324,26 +314,62 @@ class HealthPlugin : Plugin() {
                 try {
                     startActivityForResult(call, intent, "handlePermissionResult")
                 } catch (e: Exception) {
-                    pendingEnableBackgroundSync = false
+                    pendingConfigureBackgroundSync = false
                     pendingReadTypes = emptyList()
                     call.reject("Failed to launch Health Connect permission request.", null, e)
                 }
                 return@launch
             }
 
-            continueEnableBackgroundSync(call, client)
+            continueConfigureBackgroundSync(call, client)
         }
     }
 
     @PluginMethod
-    fun disableBackgroundSync(call: PluginCall) {
+    fun startBackgroundSync(call: PluginCall) {
         rejectIfBackgroundSyncUnavailable(call)?.let { return }
-        try {
-            backgroundScheduler.cancel()
-            backgroundPreferences.setEnabled(false)
-            call.resolve()
-        } catch (e: Exception) {
-            call.reject(e.message ?: "Failed to disable background sync.", null, e)
+        pluginScope.launch {
+            val client = getClientOrReject(call) ?: return@launch
+            val config = try {
+                backgroundPreferences.requireConfig()
+            } catch (e: Exception) {
+                call.reject(e.message ?: "Background sync is not configured.", null, e)
+                return@launch
+            }
+            val grantedHealthPermissions = client.permissionController.getGrantedPermissions()
+            val requiredHealthPermissions = manager.permissionsFor(config.dataTypes, emptyList())
+            if (!grantedHealthPermissions.containsAll(requiredHealthPermissions)) {
+                call.reject("Background sync permissions must be granted during configureBackgroundSync().")
+                return@launch
+            }
+            if (!backgroundPermissionChecker.hasRequiredBackgroundPermissions()) {
+                call.reject("Background sync permissions must be granted during configureBackgroundSync().")
+                return@launch
+            }
+
+            backgroundPreferences.saveConfig(config.withEnabled(true))
+            backgroundScheduler.schedule(config)
+            call.resolve(buildBackgroundSyncStatus(config, client))
+        }
+    }
+
+    @PluginMethod
+    fun stopBackgroundSync(call: PluginCall) {
+        rejectIfBackgroundSyncUnavailable(call)?.let { return }
+        pluginScope.launch {
+            try {
+                backgroundScheduler.cancel()
+                backgroundPreferences.setEnabled(false)
+                val client = if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
+                    HealthConnectClient.getOrCreate(context)
+                } else {
+                    null
+                }
+                val config = backgroundPreferences.getConfig()
+                call.resolve(buildBackgroundSyncStatus(config, client))
+            } catch (e: Exception) {
+                call.reject(e.message ?: "Failed to stop background sync.", null, e)
+            }
         }
     }
 
@@ -364,11 +390,7 @@ class HealthPlugin : Plugin() {
                     false
                 }
                 call.resolve(
-                    JSObject().apply {
-                        put("options", config?.toOptionsJSObject())
-                        put("isBgSyncAvailable", isBgSyncAvailable)
-                        put("isPermissionsGranted", isPermissionsGranted)
-                    }
+                    buildBackgroundSyncStatus(config, client, isBgSyncAvailable, isPermissionsGranted)
                 )
             } catch (e: Exception) {
                 call.reject(e.message ?: "Failed to get background sync status.", null, e)
@@ -496,7 +518,7 @@ class HealthPlugin : Plugin() {
         return availabilityReason(status)
     }
 
-    private suspend fun continueEnableBackgroundSync(call: PluginCall, client: HealthConnectClient) {
+    private suspend fun continueConfigureBackgroundSync(call: PluginCall, client: HealthConnectClient) {
         val config = try {
             backgroundPreferences.requireConfig()
         } catch (e: Exception) {
@@ -530,16 +552,35 @@ class HealthPlugin : Plugin() {
             return
         }
 
-        backgroundPreferences.saveConfig(config.withEnabled(true))
-        backgroundScheduler.schedule(config)
-        call.resolve()
+        call.resolve(buildBackgroundSyncStatus(config, client, isPermissionsGranted = true))
     }
 
     @PermissionCallback
     private fun handleBackgroundRuntimePermissionResult(call: PluginCall) {
         pluginScope.launch {
             val client = getClientOrReject(call) ?: return@launch
-            continueEnableBackgroundSync(call, client)
+            continueConfigureBackgroundSync(call, client)
+        }
+    }
+
+    private suspend fun buildBackgroundSyncStatus(
+        config: BackgroundSyncConfig?,
+        client: HealthConnectClient?,
+        isBgSyncAvailable: Boolean = isBackgroundSyncAvailable(),
+        isPermissionsGranted: Boolean? = null
+    ): JSObject {
+        val bgPermissionsGranted = isPermissionsGranted ?: if (isBgSyncAvailable && config != null && client != null) {
+            backgroundPermissionChecker.hasRequiredPermissions(client, config)
+        } else {
+            false
+        }
+        val isBgSyncScheduled = withContext(Dispatchers.IO) {
+            if (isBgSyncAvailable) backgroundScheduler.isScheduled() else false
+        }
+        return JSObject().apply {
+            put("isBgSyncAvailable", isBgSyncAvailable)
+            put("isBgPermissionsGranted", bgPermissionsGranted)
+            put("isBgSyncScheduled", isBgSyncScheduled)
         }
     }
 

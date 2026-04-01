@@ -127,12 +127,12 @@ export interface BackgroundSyncOptions {
 }
 
 export interface BackgroundSyncStatus {
-  /** Persisted background sync options, if configured. */
-  options?: BackgroundSyncOptions;
   /** Whether background sync is supported on the current runtime platform. */
   isBgSyncAvailable: boolean;
   /** Whether the required native permissions are currently granted. */
-  isPermissionsGranted: boolean;
+  isBgPermissionsGranted: boolean;
+  /** Best-effort indication of whether background sync work is currently scheduled. */
+  isBgSyncScheduled: boolean;
 }
 
 export type WorkoutType =
@@ -446,18 +446,18 @@ export interface HealthPlugin {
    * Configures the backend endpoints and datatypes used by native background sync.
    * Uploads are performed natively when background work is triggered.
    */
-  configureBackgroundSync(options: BackgroundSyncOptions): Promise<void>;
+  configureBackgroundSync(options: BackgroundSyncOptions): Promise<BackgroundSyncStatus>;
 
   /**
    * Enables native background health sync.
    * On Android this schedules periodic work after required permissions are granted.
    */
-  enableBackgroundSync(): Promise<void>;
+  startBackgroundSync(): Promise<BackgroundSyncStatus>;
 
   /**
    * Disables native background health sync.
    */
-  disableBackgroundSync(): Promise<void>;
+  stopBackgroundSync(): Promise<BackgroundSyncStatus>;
 
   /**
    * Returns the current background sync configuration and runtime status.

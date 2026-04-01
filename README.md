@@ -335,8 +335,8 @@ const { samples: avgHR } = await Health.queryAggregated({
 * [`queryWorkouts(...)`](#queryworkouts)
 * [`queryAggregated(...)`](#queryaggregated)
 * [`configureBackgroundSync(...)`](#configurebackgroundsync)
-* [`enableBackgroundSync()`](#enablebackgroundsync)
-* [`disableBackgroundSync()`](#disablebackgroundsync)
+* [`startBackgroundSync()`](#startbackgroundsync)
+* [`stopBackgroundSync()`](#stopbackgroundsync)
 * [`getBackgroundSyncStatus()`](#getbackgroundsyncstatus)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
@@ -514,7 +514,7 @@ Supported on iOS (HealthKit) and Android (Health Connect).
 ### configureBackgroundSync(...)
 
 ```typescript
-configureBackgroundSync(options: BackgroundSyncOptions) => Promise<void>
+configureBackgroundSync(options: BackgroundSyncOptions) => Promise<BackgroundSyncStatus>
 ```
 
 Configures the backend endpoints and datatypes used by native background sync.
@@ -524,28 +524,34 @@ Uploads are performed natively when background work is triggered.
 | ------------- | ----------------------------------------------------------------------- |
 | **`options`** | <code><a href="#backgroundsyncoptions">BackgroundSyncOptions</a></code> |
 
+**Returns:** <code>Promise&lt;<a href="#backgroundsyncstatus">BackgroundSyncStatus</a>&gt;</code>
+
 --------------------
 
 
-### enableBackgroundSync()
+### startBackgroundSync()
 
 ```typescript
-enableBackgroundSync() => Promise<void>
+startBackgroundSync() => Promise<BackgroundSyncStatus>
 ```
 
 Enables native background health sync.
 On Android this schedules periodic work after required permissions are granted.
 
+**Returns:** <code>Promise&lt;<a href="#backgroundsyncstatus">BackgroundSyncStatus</a>&gt;</code>
+
 --------------------
 
 
-### disableBackgroundSync()
+### stopBackgroundSync()
 
 ```typescript
-disableBackgroundSync() => Promise<void>
+stopBackgroundSync() => Promise<BackgroundSyncStatus>
 ```
 
 Disables native background health sync.
+
+**Returns:** <code>Promise&lt;<a href="#backgroundsyncstatus">BackgroundSyncStatus</a>&gt;</code>
 
 --------------------
 
@@ -706,6 +712,15 @@ Returns the current background sync configuration and runtime status.
 | **`aggregation`** | <code><a href="#aggregationtype">AggregationType</a></code> | Aggregation operation to perform (defaults to 'sum').    |
 
 
+#### BackgroundSyncStatus
+
+| Prop                         | Type                 | Description                                                                    |
+| ---------------------------- | -------------------- | ------------------------------------------------------------------------------ |
+| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.          |
+| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                 |
+| **`isBgSyncScheduled`**      | <code>boolean</code> | Best-effort indication of whether background sync work is currently scheduled. |
+
+
 #### BackgroundSyncOptions
 
 | Prop                          | Type                                                                                        | Description                                                                                                                                                                                                                                           |
@@ -723,15 +738,6 @@ Returns the current background sync configuration and runtime status.
 | ------------- | --------------------------------------------------------------- | -------------------------------------------------------------------- |
 | **`url`**     | <code>string</code>                                             | URL used by the native background sync API request.                  |
 | **`headers`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Optional HTTP headers persisted for native background sync requests. |
-
-
-#### BackgroundSyncStatus
-
-| Prop                       | Type                                                                    | Description                                                           |
-| -------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| **`options`**              | <code><a href="#backgroundsyncoptions">BackgroundSyncOptions</a></code> | Persisted background sync options, if configured.                     |
-| **`isBgSyncAvailable`**    | <code>boolean</code>                                                    | Whether background sync is supported on the current runtime platform. |
-| **`isPermissionsGranted`** | <code>boolean</code>                                                    | Whether the required native permissions are currently granted.        |
 
 
 ### Type Aliases

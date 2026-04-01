@@ -61,15 +61,15 @@ export class HealthWeb extends WebPlugin implements HealthPlugin {
     throw this.unimplemented('Querying aggregated data is only available on native platforms.');
   }
 
-  async configureBackgroundSync(_options: BackgroundSyncOptions): Promise<void> {
+  async configureBackgroundSync(_options: BackgroundSyncOptions): Promise<BackgroundSyncStatus> {
     throw this.unimplemented('Background health sync is only available on native platforms.');
   }
 
-  async enableBackgroundSync(): Promise<void> {
+  async startBackgroundSync(): Promise<BackgroundSyncStatus> {
     throw this.unimplemented('Background health sync is only available on native platforms.');
   }
 
-  async disableBackgroundSync(): Promise<void> {
+  async stopBackgroundSync(): Promise<BackgroundSyncStatus> {
     throw this.unimplemented('Background health sync is only available on native platforms.');
   }
 
