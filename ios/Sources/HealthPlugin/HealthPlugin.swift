@@ -16,7 +16,11 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "openHealthConnectSettings", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "showPrivacyPolicy", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "queryWorkouts", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "queryAggregated", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "queryAggregated", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "configureBackgroundSync", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "enableBackgroundSync", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "disableBackgroundSync", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "getBackgroundSyncStatus", returnType: CAPPluginReturnPromise)
     ]
 
     private let implementation = Health()
@@ -207,6 +211,29 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
                 }
             }
         }
+    }
+
+    @objc func configureBackgroundSync(_ call: CAPPluginCall) {
+        // No-op on iOS for now.
+        call.resolve()
+    }
+
+    @objc func enableBackgroundSync(_ call: CAPPluginCall) {
+        // No-op on iOS for now.
+        call.resolve()
+    }
+
+    @objc func disableBackgroundSync(_ call: CAPPluginCall) {
+        // No-op on iOS for now.
+        call.resolve()
+    }
+
+    @objc func getBackgroundSyncStatus(_ call: CAPPluginCall) {
+        // No-op on iOS for now.
+        call.resolve([
+            "isBgSyncAvailable": false,
+            "isPermissionsGranted": false
+        ])
     }
 
 }

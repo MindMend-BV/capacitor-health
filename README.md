@@ -334,6 +334,10 @@ const { samples: avgHR } = await Health.queryAggregated({
 * [`showPrivacyPolicy()`](#showprivacypolicy)
 * [`queryWorkouts(...)`](#queryworkouts)
 * [`queryAggregated(...)`](#queryaggregated)
+* [`configureBackgroundSync(...)`](#configurebackgroundsync)
+* [`enableBackgroundSync()`](#enablebackgroundsync)
+* [`disableBackgroundSync()`](#disablebackgroundsync)
+* [`getBackgroundSyncStatus()`](#getbackgroundsyncstatus)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
 
@@ -507,6 +511,58 @@ Supported on iOS (HealthKit) and Android (Health Connect).
 --------------------
 
 
+### configureBackgroundSync(...)
+
+```typescript
+configureBackgroundSync(options: BackgroundSyncOptions) => Promise<void>
+```
+
+Configures the backend endpoints and datatypes used by native background sync.
+Uploads are performed natively when background work is triggered.
+
+| Param         | Type                                                                    |
+| ------------- | ----------------------------------------------------------------------- |
+| **`options`** | <code><a href="#backgroundsyncoptions">BackgroundSyncOptions</a></code> |
+
+--------------------
+
+
+### enableBackgroundSync()
+
+```typescript
+enableBackgroundSync() => Promise<void>
+```
+
+Enables native background health sync.
+On Android this schedules periodic work after required permissions are granted.
+
+--------------------
+
+
+### disableBackgroundSync()
+
+```typescript
+disableBackgroundSync() => Promise<void>
+```
+
+Disables native background health sync.
+
+--------------------
+
+
+### getBackgroundSyncStatus()
+
+```typescript
+getBackgroundSyncStatus() => Promise<BackgroundSyncStatus>
+```
+
+Returns the current background sync configuration and runtime status.
+
+**Returns:** <code>Promise&lt;<a href="#backgroundsyncstatus">BackgroundSyncStatus</a>&gt;</code>
+
+--------------------
+
+
 ### Interfaces
 
 
@@ -648,6 +704,33 @@ Supported on iOS (HealthKit) and Android (Health Connect).
 | **`endDate`**     | <code>string</code>                                         | Exclusive ISO 8601 end date (defaults to now).           |
 | **`bucket`**      | <code><a href="#buckettype">BucketType</a></code>           | Time bucket for aggregation (defaults to 'day').         |
 | **`aggregation`** | <code><a href="#aggregationtype">AggregationType</a></code> | Aggregation operation to perform (defaults to 'sum').    |
+
+
+#### BackgroundSyncOptions
+
+| Prop                  | Type                                                                                        | Description                                                                                                                                                                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`getLastSync`**     | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code> | Backend endpoint used to fetch the last synced timestamp for each datatype. Expected response shape: `Partial&lt;<a href="#record">Record</a>&lt;<a href="#healthdatatype">HealthDataType</a>, string&gt;&gt;`, where each value is an ISO timestamp. |
+| **`postSamples`**     | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code> | Backend endpoint used to upload background-collected samples. Current Android upload body shape: `{ data: HealthSample[] }`.                                                                                                                          |
+| **`dataTypes`**       | <code>HealthDataType[]</code>                                                               | Datatypes that should be read during background sync.                                                                                                                                                                                                 |
+| **`intervalMinutes`** | <code>number</code>                                                                         | Android periodic sync interval in minutes.                                                                                                                                                                                                            |
+
+
+#### BackgroundSyncApiRequestOptions
+
+| Prop          | Type                                                            | Description                                                          |
+| ------------- | --------------------------------------------------------------- | -------------------------------------------------------------------- |
+| **`url`**     | <code>string</code>                                             | URL used by the native background sync API request.                  |
+| **`headers`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Optional HTTP headers persisted for native background sync requests. |
+
+
+#### BackgroundSyncStatus
+
+| Prop                       | Type                                                                    | Description                                                           |
+| -------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| **`options`**              | <code><a href="#backgroundsyncoptions">BackgroundSyncOptions</a></code> | Persisted background sync options, if configured.                     |
+| **`isBgSyncAvailable`**    | <code>boolean</code>                                                    | Whether background sync is supported on the current runtime platform. |
+| **`isPermissionsGranted`** | <code>boolean</code>                                                    | Whether the required native permissions are currently granted.        |
 
 
 ### Type Aliases

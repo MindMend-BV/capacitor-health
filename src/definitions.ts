@@ -95,6 +95,39 @@ export interface ReadSamplesResult {
   samples: HealthSample[];
 }
 
+export interface BackgroundSyncApiRequestOptions {
+  /** URL used by the native background sync API request. */
+  url: string;
+  /** Optional HTTP headers persisted for native background sync requests. */
+  headers?: Record<string, string>;
+}
+
+export interface BackgroundSyncOptions {
+  /**
+   * Backend endpoint used to fetch the last synced timestamp for each datatype.
+   * Expected response shape: `Partial<Record<HealthDataType, string>>`, where each value is an ISO timestamp.
+   */
+  getLastSync: BackgroundSyncApiRequestOptions;
+  /**
+   * Backend endpoint used to upload background-collected samples.
+   * Current Android upload body shape: `{ data: HealthSample[] }`.
+   */
+  postSamples: BackgroundSyncApiRequestOptions;
+  /** Datatypes that should be read during background sync. */
+  dataTypes: HealthDataType[];
+  /** Android periodic sync interval in minutes. */
+  intervalMinutes: number;
+}
+
+export interface BackgroundSyncStatus {
+  /** Persisted background sync options, if configured. */
+  options?: BackgroundSyncOptions;
+  /** Whether background sync is supported on the current runtime platform. */
+  isBgSyncAvailable: boolean;
+  /** Whether the required native permissions are currently granted. */
+  isPermissionsGranted: boolean;
+}
+
 export type WorkoutType =
   // Common types (supported on both platforms)
   | 'americanFootball'
@@ -401,4 +434,26 @@ export interface HealthPlugin {
    * @throws An error if something went wrong
    */
   queryAggregated(options: QueryAggregatedOptions): Promise<QueryAggregatedResult>;
+
+  /**
+   * Configures the backend endpoints and datatypes used by native background sync.
+   * Uploads are performed natively when background work is triggered.
+   */
+  configureBackgroundSync(options: BackgroundSyncOptions): Promise<void>;
+
+  /**
+   * Enables native background health sync.
+   * On Android this schedules periodic work after required permissions are granted.
+   */
+  enableBackgroundSync(): Promise<void>;
+
+  /**
+   * Disables native background health sync.
+   */
+  disableBackgroundSync(): Promise<void>;
+
+  /**
+   * Returns the current background sync configuration and runtime status.
+   */
+  getBackgroundSyncStatus(): Promise<BackgroundSyncStatus>;
 }
