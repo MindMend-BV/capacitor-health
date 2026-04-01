@@ -102,6 +102,13 @@ export interface BackgroundSyncApiRequestOptions {
   headers?: Record<string, string>;
 }
 
+export type BackgroundSyncInterval =
+  | '15min'
+  | '30min'
+  | '1hour'
+  | '8hours'
+  | '24hours';
+
 export interface BackgroundSyncOptions {
   /**
    * Backend endpoint used to fetch the last synced timestamp for each datatype.
@@ -115,8 +122,8 @@ export interface BackgroundSyncOptions {
   postSamples: BackgroundSyncApiRequestOptions;
   /** Datatypes that should be read during background sync. */
   dataTypes: HealthDataType[];
-  /** Android periodic sync interval in minutes. */
-  intervalMinutes: number;
+  /** Requested Android periodic sync interval. Actual execution remains inexact per WorkManager rules. */
+  interval: BackgroundSyncInterval;
   /**
    * Debug-only behavior for Android background sync.
    * When enabled, each background trigger ignores the backend last-sync value,

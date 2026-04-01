@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit
 
 class BackgroundHealthScheduler(private val context: Context) {
     fun schedule(config: BackgroundSyncConfig) {
-        val intervalMinutes = config.intervalMinutes.coerceAtLeast(MIN_INTERVAL_MINUTES)
+        val intervalMinutes = config.interval.intervalMinutes.coerceAtLeast(MIN_INTERVAL_MINUTES)
         val request = PeriodicWorkRequestBuilder<BackgroundHealthWorker>(
             intervalMinutes,
             TimeUnit.MINUTES

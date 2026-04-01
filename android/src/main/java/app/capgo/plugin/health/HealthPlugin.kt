@@ -21,6 +21,7 @@ import app.capgo.plugin.health.background.BackgroundHealthPreferences
 import app.capgo.plugin.health.background.BackgroundHealthScheduler
 import app.capgo.plugin.health.background.BackgroundSyncApiRequestConfig
 import app.capgo.plugin.health.background.BackgroundSyncConfig
+import app.capgo.plugin.health.background.BackgroundSyncInterval
 import java.time.Instant
 import java.time.Duration
 import java.time.format.DateTimeParseException
@@ -434,16 +435,14 @@ class HealthPlugin : Plugin() {
         if (dataTypes.isEmpty()) {
             throw IllegalArgumentException("Background sync requires at least one dataType.")
         }
-        val intervalMinutes = (call.getInt("intervalMinutes") ?: 0).toLong()
-        if (intervalMinutes <= 0) {
-            throw IllegalArgumentException("intervalMinutes must be greater than 0.")
-        }
+        val interval = BackgroundSyncInterval.from(call.getString("interval"))
+            ?: throw IllegalArgumentException("interval must be one of: 15min, 30min, 1hour, 8hours, 24hours.")
 
         return BackgroundSyncConfig(
             getLastSync = getLastSync,
             postSamples = postSamples,
             dataTypes = dataTypes,
-            intervalMinutes = intervalMinutes,
+            interval = interval,
             debugForceFullResync24h = call.getBoolean("debugForceFullResync24h") ?: false,
             enabled = backgroundPreferences.getConfig()?.enabled ?: false
         )

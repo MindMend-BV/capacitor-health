@@ -39,11 +39,28 @@ data class BackgroundSyncApiRequestConfig(
     }
 }
 
+enum class BackgroundSyncInterval(
+    val identifier: String,
+    val intervalMinutes: Long
+) {
+    FIFTEEN_MINUTES("15min", 15L),
+    THIRTY_MINUTES("30min", 30L),
+    ONE_HOUR("1hour", 60L),
+    EIGHT_HOURS("8hours", 480L),
+    TWENTY_FOUR_HOURS("24hours", 1440L);
+
+    companion object {
+        fun from(identifier: String?): BackgroundSyncInterval? {
+            return entries.firstOrNull { it.identifier == identifier }
+        }
+    }
+}
+
 data class BackgroundSyncConfig(
     val getLastSync: BackgroundSyncApiRequestConfig,
     val postSamples: BackgroundSyncApiRequestConfig,
     val dataTypes: List<HealthDataType>,
-    val intervalMinutes: Long,
+    val interval: BackgroundSyncInterval,
     val debugForceFullResync24h: Boolean = false,
     val enabled: Boolean = false
 ) {
@@ -53,7 +70,7 @@ data class BackgroundSyncConfig(
         put("dataTypes", JSONArray().apply {
             dataTypes.forEach { put(it.identifier) }
         })
-        put("intervalMinutes", intervalMinutes)
+        put("interval", interval.identifier)
         put("debugForceFullResync24h", debugForceFullResync24h)
         put("enabled", enabled)
     }
@@ -64,7 +81,7 @@ data class BackgroundSyncConfig(
         put("dataTypes", JSArray().apply {
             dataTypes.forEach { put(it.identifier) }
         })
-        put("intervalMinutes", intervalMinutes)
+        put("interval", interval.identifier)
         put("debugForceFullResync24h", debugForceFullResync24h)
     }
 
@@ -81,8 +98,8 @@ data class BackgroundSyncConfig(
                 dataTypes.add(dataType)
             }
 
-            val intervalMinutes = json.optLong("intervalMinutes")
-            require(intervalMinutes > 0) { "Background sync intervalMinutes must be greater than 0." }
+            val interval = BackgroundSyncInterval.from(json.optString("interval"))
+                ?: throw IllegalArgumentException("Background sync interval must be one of: 15min, 30min, 1hour, 8hours, 24hours.")
             require(dataTypes.isNotEmpty()) { "Background sync requires at least one data type." }
 
             return BackgroundSyncConfig(
@@ -95,7 +112,7 @@ data class BackgroundSyncConfig(
                         ?: throw IllegalArgumentException("Background sync postSamples configuration is required.")
                 ),
                 dataTypes = dataTypes.distinct(),
-                intervalMinutes = intervalMinutes,
+                interval = interval,
                 debugForceFullResync24h = json.optBoolean("debugForceFullResync24h", false),
                 enabled = json.optBoolean("enabled", false)
             )

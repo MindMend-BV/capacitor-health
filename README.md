@@ -728,7 +728,7 @@ Returns the current background sync configuration and runtime status.
 | **`getLastSync`**             | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code> | Backend endpoint used to fetch the last synced timestamp for each datatype. Expected response shape: `Partial&lt;<a href="#record">Record</a>&lt;<a href="#healthdatatype">HealthDataType</a>, string&gt;&gt;`, where each value is an ISO timestamp. |
 | **`postSamples`**             | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code> | Backend endpoint used to upload background-collected samples. Current Android upload body shape: `{ data: HealthSample[] }`.                                                                                                                          |
 | **`dataTypes`**               | <code>HealthDataType[]</code>                                                               | Datatypes that should be read during background sync.                                                                                                                                                                                                 |
-| **`intervalMinutes`**         | <code>number</code>                                                                         | Android periodic sync interval in minutes.                                                                                                                                                                                                            |
+| **`interval`**                | <code><a href="#backgroundsyncinterval">BackgroundSyncInterval</a></code>                   | Requested Android periodic sync interval. Actual execution remains inexact per WorkManager rules.                                                                                                                                                     |
 | **`debugForceFullResync24h`** | <code>boolean</code>                                                                        | Debug-only behavior for Android background sync. When enabled, each background trigger ignores the backend last-sync value, reads the last 24 hours of data, and uploads it again.                                                                    |
 
 
@@ -778,6 +778,11 @@ Construct a type with a set of properties K of type T
 #### AggregationType
 
 <code>'sum' | 'average' | 'min' | 'max'</code>
+
+
+#### BackgroundSyncInterval
+
+<code>'15min' | '30min' | '1hour' | '8hours' | '24hours'</code>
 
 </docgen-api>
 
