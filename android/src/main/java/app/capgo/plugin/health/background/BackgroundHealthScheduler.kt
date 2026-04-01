@@ -15,11 +15,7 @@ class BackgroundHealthScheduler(private val context: Context) {
             intervalMinutes,
             TimeUnit.MINUTES
         )
-            .setConstraints(
-                Constraints.Builder()
-                    .setRequiredNetworkType(NetworkType.CONNECTED)
-                    .build()
-            )
+            .setConstraints(defaultConstraints())
             .build()
 
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
@@ -32,6 +28,10 @@ class BackgroundHealthScheduler(private val context: Context) {
     fun cancel() {
         WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
     }
+
+    private fun defaultConstraints(): Constraints = Constraints.Builder()
+        .setRequiredNetworkType(NetworkType.CONNECTED)
+        .build()
 
     companion object {
         const val UNIQUE_WORK_NAME = "capgo.health.background.sync"

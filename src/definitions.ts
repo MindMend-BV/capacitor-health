@@ -122,6 +122,7 @@ export interface BackgroundSyncOptions {
    * When enabled, each background trigger ignores the backend last-sync value,
    * reads the last 24 hours of data, and uploads it again.
    */
+  // TODO: remove this after testing is complete
   debugForceFullResync24h?: boolean;
 }
 

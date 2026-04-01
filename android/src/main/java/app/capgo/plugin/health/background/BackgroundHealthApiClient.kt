@@ -16,13 +16,14 @@ class BackgroundHealthApiClient {
         val connection = openConnection(config, "GET")
         return connection.useJsonConnection { response ->
             val json = JSONObject(response)
+            val lastSyncJson = json.optJSONObject("data") ?: json
             buildMap {
-                val keys = json.keys()
+                val keys = lastSyncJson.keys()
                 while (keys.hasNext()) {
                     val key = keys.next()
                     val dataType = HealthDataType.from(key)
                         ?: throw IllegalArgumentException("Unsupported health data type in last sync response: $key")
-                    val timestamp = json.optString(key)
+                    val timestamp = lastSyncJson.optString(key)
                     if (timestamp.isBlank()) {
                         throw IllegalArgumentException("Missing timestamp for health data type: $key")
                     }

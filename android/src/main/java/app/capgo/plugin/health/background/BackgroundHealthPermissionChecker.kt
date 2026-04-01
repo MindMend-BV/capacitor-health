@@ -12,16 +12,26 @@ class BackgroundHealthPermissionChecker(
     private val context: Context,
     private val healthManager: HealthManager
 ) {
+    fun isBackgroundSyncSupported(): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    }
+
     suspend fun hasRequiredPermissions(
         client: HealthConnectClient,
         config: BackgroundSyncConfig
     ): Boolean {
+        if (!isBackgroundSyncSupported()) {
+            return false
+        }
         val grantedHealthPermissions = client.permissionController.getGrantedPermissions()
         val requiredHealthPermissions = healthManager.permissionsFor(config.dataTypes, emptyList())
         return grantedHealthPermissions.containsAll(requiredHealthPermissions) && hasRequiredBackgroundPermissions()
     }
 
     fun hasRequiredBackgroundPermissions(): Boolean {
+        if (!isBackgroundSyncSupported()) {
+            return false
+        }
         return requiredRuntimePermissions().all { permission ->
             ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
         }

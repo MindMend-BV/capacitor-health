@@ -291,6 +291,7 @@ class HealthPlugin : Plugin() {
 
     @PluginMethod
     fun configureBackgroundSync(call: PluginCall) {
+        rejectIfBackgroundSyncUnavailable(call)?.let { return }
         try {
             val config = parseBackgroundSyncConfig(call)
             backgroundPreferences.saveConfig(config)
@@ -302,6 +303,7 @@ class HealthPlugin : Plugin() {
 
     @PluginMethod
     fun enableBackgroundSync(call: PluginCall) {
+        rejectIfBackgroundSyncUnavailable(call)?.let { return }
         val config = try {
             backgroundPreferences.requireConfig()
         } catch (e: Exception) {
@@ -335,6 +337,7 @@ class HealthPlugin : Plugin() {
 
     @PluginMethod
     fun disableBackgroundSync(call: PluginCall) {
+        rejectIfBackgroundSyncUnavailable(call)?.let { return }
         try {
             backgroundScheduler.cancel()
             backgroundPreferences.setEnabled(false)
@@ -349,12 +352,13 @@ class HealthPlugin : Plugin() {
         pluginScope.launch {
             try {
                 val config = backgroundPreferences.getConfig()
+                val isBgSyncAvailable = isBackgroundSyncAvailable()
                 val client = if (HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE) {
                     HealthConnectClient.getOrCreate(context)
                 } else {
                     null
                 }
-                val isPermissionsGranted = if (config != null && client != null) {
+                val isPermissionsGranted = if (isBgSyncAvailable && config != null && client != null) {
                     backgroundPermissionChecker.hasRequiredPermissions(client, config)
                 } else {
                     false
@@ -362,7 +366,7 @@ class HealthPlugin : Plugin() {
                 call.resolve(
                     JSObject().apply {
                         put("options", config?.toOptionsJSObject())
-                        put("isBgSyncAvailable", HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE)
+                        put("isBgSyncAvailable", isBgSyncAvailable)
                         put("isPermissionsGranted", isPermissionsGranted)
                     }
                 )
@@ -469,6 +473,27 @@ class HealthPlugin : Plugin() {
             HealthConnectClient.SDK_UNAVAILABLE -> "Health Connect is unavailable on this device."
             else -> "Health Connect availability unknown."
         }
+    }
+
+    private fun isBackgroundSyncAvailable(): Boolean {
+        return HealthConnectClient.getSdkStatus(context) == HealthConnectClient.SDK_AVAILABLE &&
+            backgroundPermissionChecker.isBackgroundSyncSupported()
+    }
+
+    private fun rejectIfBackgroundSyncUnavailable(call: PluginCall): Unit? {
+        if (isBackgroundSyncAvailable()) {
+            return null
+        }
+        call.reject(backgroundSyncUnavailableReason())
+        return Unit
+    }
+
+    private fun backgroundSyncUnavailableReason(): String {
+        if (!backgroundPermissionChecker.isBackgroundSyncSupported()) {
+            return "Background sync requires Android API level 33 or higher."
+        }
+        val status = HealthConnectClient.getSdkStatus(context)
+        return availabilityReason(status)
     }
 
     private suspend fun continueEnableBackgroundSync(call: PluginCall, client: HealthConnectClient) {
