@@ -44,6 +44,7 @@ data class BackgroundSyncConfig(
     val postSamples: BackgroundSyncApiRequestConfig,
     val dataTypes: List<HealthDataType>,
     val intervalMinutes: Long,
+    val debugForceFullResync24h: Boolean = false,
     val enabled: Boolean = false
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
@@ -53,6 +54,7 @@ data class BackgroundSyncConfig(
             dataTypes.forEach { put(it.identifier) }
         })
         put("intervalMinutes", intervalMinutes)
+        put("debugForceFullResync24h", debugForceFullResync24h)
         put("enabled", enabled)
     }
 
@@ -63,6 +65,7 @@ data class BackgroundSyncConfig(
             dataTypes.forEach { put(it.identifier) }
         })
         put("intervalMinutes", intervalMinutes)
+        put("debugForceFullResync24h", debugForceFullResync24h)
     }
 
     fun withEnabled(enabled: Boolean): BackgroundSyncConfig = copy(enabled = enabled)
@@ -93,6 +96,7 @@ data class BackgroundSyncConfig(
                 ),
                 dataTypes = dataTypes.distinct(),
                 intervalMinutes = intervalMinutes,
+                debugForceFullResync24h = json.optBoolean("debugForceFullResync24h", false),
                 enabled = json.optBoolean("enabled", false)
             )
         }

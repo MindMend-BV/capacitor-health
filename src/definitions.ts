@@ -117,6 +117,12 @@ export interface BackgroundSyncOptions {
   dataTypes: HealthDataType[];
   /** Android periodic sync interval in minutes. */
   intervalMinutes: number;
+  /**
+   * Debug-only behavior for Android background sync.
+   * When enabled, each background trigger ignores the backend last-sync value,
+   * reads the last 24 hours of data, and uploads it again.
+   */
+  debugForceFullResync24h?: boolean;
 }
 
 export interface BackgroundSyncStatus {

@@ -418,6 +418,7 @@ class HealthPlugin : Plugin() {
             postSamples = postSamples,
             dataTypes = dataTypes,
             intervalMinutes = intervalMinutes,
+            debugForceFullResync24h = call.getBoolean("debugForceFullResync24h") ?: false,
             enabled = backgroundPreferences.getConfig()?.enabled ?: false
         )
     }

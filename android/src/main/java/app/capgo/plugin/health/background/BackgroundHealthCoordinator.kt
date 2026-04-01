@@ -47,7 +47,7 @@ class BackgroundHealthCoordinator(
 
         config.dataTypes.forEach { dataType ->
             try {
-                val startTime = resolveStartTime(lastSyncMap, dataType, endTime)
+                val startTime = resolveStartTime(lastSyncMap, dataType, config, endTime)
                 val samples = healthManager.readSamples(
                     client = client,
                     dataType = dataType,
@@ -81,8 +81,13 @@ class BackgroundHealthCoordinator(
     private fun resolveStartTime(
         lastSyncMap: Map<HealthDataType, String>,
         dataType: HealthDataType,
+        config: BackgroundSyncConfig,
         endTime: Instant
     ): Instant {
+        if (config.debugForceFullResync24h) {
+            return endTime.minus(MAX_WINDOW)
+        }
+
         val lastSync = lastSyncMap[dataType]?.let { timestamp ->
             try {
                 Instant.parse(timestamp)
