@@ -16,28 +16,45 @@ class BackgroundHealthPermissionChecker(
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     }
 
-    suspend fun hasRequiredPermissions(
+    /**
+     * Health Connect grants only: whether [config.dataTypes] read permissions are granted.
+     * Does not check Android background runtime permissions or API-level background support.
+     */
+    suspend fun hasHealthConnectPermissions(
+        client: HealthConnectClient,
+        config: BackgroundSyncConfig
+    ): Boolean {
+        val grantedHealthPermissions = client.permissionController.getGrantedPermissions()
+        val requiredHealthPermissions = healthManager.permissionsFor(config.dataTypes, emptyList())
+        return grantedHealthPermissions.containsAll(requiredHealthPermissions)
+    }
+
+    /**
+     * Android runtime permissions for background health reads (API 33–35 / 36+), when supported.
+     */
+    fun hasBackgroundHealthRuntimePermissions(): Boolean {
+        if (!isBackgroundSyncSupported()) {
+            return false
+        }
+        return backgroundHealthRuntimePermissionNames().all { permission ->
+            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    /**
+     * Full gate: supported API, Health Connect data permissions, and background runtime permissions.
+     */
+    suspend fun hasAllPermissionsForBackgroundSync(
         client: HealthConnectClient,
         config: BackgroundSyncConfig
     ): Boolean {
         if (!isBackgroundSyncSupported()) {
             return false
         }
-        val grantedHealthPermissions = client.permissionController.getGrantedPermissions()
-        val requiredHealthPermissions = healthManager.permissionsFor(config.dataTypes, emptyList())
-        return grantedHealthPermissions.containsAll(requiredHealthPermissions) && hasRequiredBackgroundPermissions()
+        return hasHealthConnectPermissions(client, config) && hasBackgroundHealthRuntimePermissions()
     }
 
-    fun hasRequiredBackgroundPermissions(): Boolean {
-        if (!isBackgroundSyncSupported()) {
-            return false
-        }
-        return requiredRuntimePermissions().all { permission ->
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-
-    fun requiredRuntimePermissions(): List<String> {
+    private fun backgroundHealthRuntimePermissionNames(): List<String> {
         val permissions = mutableListOf<String>()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             Build.VERSION.SDK_INT < 36

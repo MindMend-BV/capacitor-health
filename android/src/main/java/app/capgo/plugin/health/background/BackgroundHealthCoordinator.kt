@@ -30,7 +30,7 @@ class BackgroundHealthCoordinator(
         }
 
         val client = HealthConnectClient.getOrCreate(context)
-        if (!permissionChecker.hasRequiredPermissions(client, config)) {
+        if (!permissionChecker.hasAllPermissionsForBackgroundSync(client, config)) {
             return ListenableWorker.Result.retry()
         }
 

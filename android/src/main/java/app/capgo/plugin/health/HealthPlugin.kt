@@ -337,13 +337,11 @@ class HealthPlugin : Plugin() {
                 call.reject(e.message ?: "Background sync is not configured.", null, e)
                 return@launch
             }
-            val grantedHealthPermissions = client.permissionController.getGrantedPermissions()
-            val requiredHealthPermissions = manager.permissionsFor(config.dataTypes, emptyList())
-            if (!grantedHealthPermissions.containsAll(requiredHealthPermissions)) {
+            if (!backgroundPermissionChecker.hasHealthConnectPermissions(client, config)) {
                 call.reject("Background sync permissions must be granted during configureBackgroundSync().")
                 return@launch
             }
-            if (!backgroundPermissionChecker.hasRequiredBackgroundPermissions()) {
+            if (!backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()) {
                 call.reject("Background sync permissions must be granted during configureBackgroundSync().")
                 return@launch
             }
@@ -386,7 +384,7 @@ class HealthPlugin : Plugin() {
                     null
                 }
                 val isPermissionsGranted = if (isBgSyncAvailable && config != null && client != null) {
-                    backgroundPermissionChecker.hasRequiredPermissions(client, config)
+                    backgroundPermissionChecker.hasAllPermissionsForBackgroundSync(client, config)
                 } else {
                     false
                 }
@@ -525,7 +523,7 @@ class HealthPlugin : Plugin() {
             return
         }
 
-        if (!backgroundPermissionChecker.hasRequiredBackgroundPermissions()) {
+        if (!backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()) {
             val aliases = mutableListOf<String>()
             if (android.os.Build.VERSION.SDK_INT in 33..35) {
                 aliases += "bodySensorsBackground"
@@ -539,14 +537,12 @@ class HealthPlugin : Plugin() {
             }
         }
 
-        val grantedHealthPermissions = client.permissionController.getGrantedPermissions()
-        val requiredHealthPermissions = manager.permissionsFor(config.dataTypes, emptyList())
-        if (!grantedHealthPermissions.containsAll(requiredHealthPermissions)) {
+        if (!backgroundPermissionChecker.hasHealthConnectPermissions(client, config)) {
             call.reject("Background sync requires Health Connect read permissions for all configured dataTypes.")
             return
         }
 
-        if (!backgroundPermissionChecker.hasRequiredBackgroundPermissions()) {
+        if (!backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()) {
             call.reject("Background sync requires Android background health permissions.")
             return
         }
@@ -569,7 +565,7 @@ class HealthPlugin : Plugin() {
         isPermissionsGranted: Boolean? = null
     ): JSObject {
         val bgPermissionsGranted = isPermissionsGranted ?: if (isBgSyncAvailable && config != null && client != null) {
-            backgroundPermissionChecker.hasRequiredPermissions(client, config)
+            backgroundPermissionChecker.hasAllPermissionsForBackgroundSync(client, config)
         } else {
             false
         }
