@@ -31,7 +31,10 @@ class BackgroundHealthScheduler(private val context: Context) {
     }
 
     fun isScheduled(): Boolean {
-        val workInfos = WorkManager.getInstance(context).getWorkInfosForUniqueWork(UNIQUE_WORK_NAME).get()
+        val workInfos = WorkManager.getInstance(context)
+            .getWorkInfosForUniqueWorkLiveData(UNIQUE_WORK_NAME)
+            .value
+            ?: emptyList()
         return workInfos.any { workInfo ->
             workInfo.state == WorkInfo.State.ENQUEUED ||
                 workInfo.state == WorkInfo.State.RUNNING ||
