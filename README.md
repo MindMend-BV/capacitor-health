@@ -714,11 +714,11 @@ Returns the current background sync configuration and runtime status.
 
 #### BackgroundSyncStatus
 
-| Prop                         | Type                 | Description                                                                    |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------------ |
-| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.          |
-| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                 |
-| **`isBgSyncScheduled`**      | <code>boolean</code> | Best-effort indication of whether background sync work is currently scheduled. |
+| Prop                         | Type                 | Description                                                                                                                                      |
+| ---------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.                                                                            |
+| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                                                                                   |
+| **`isBgSyncScheduled`**      | <code>boolean</code> | Android: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`. Does not reflect WorkManager runtime state. |
 
 
 #### BackgroundSyncOptions

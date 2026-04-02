@@ -6,7 +6,6 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.WorkInfo
 import java.util.concurrent.TimeUnit
 
 class BackgroundHealthScheduler(private val context: Context) {
@@ -28,18 +27,6 @@ class BackgroundHealthScheduler(private val context: Context) {
 
     fun cancel() {
         WorkManager.getInstance(context).cancelUniqueWork(UNIQUE_WORK_NAME)
-    }
-
-    fun isScheduled(): Boolean {
-        val workInfos = WorkManager.getInstance(context)
-            .getWorkInfosForUniqueWorkLiveData(UNIQUE_WORK_NAME)
-            .value
-            ?: emptyList()
-        return workInfos.any { workInfo ->
-            workInfo.state == WorkInfo.State.ENQUEUED ||
-                workInfo.state == WorkInfo.State.RUNNING ||
-                workInfo.state == WorkInfo.State.BLOCKED
-        }
     }
 
     private fun defaultConstraints(): Constraints = Constraints.Builder()

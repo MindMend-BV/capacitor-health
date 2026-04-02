@@ -28,7 +28,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @CapacitorPlugin(
     name = "Health",
@@ -560,7 +559,7 @@ class HealthPlugin : Plugin() {
         }
     }
 
-    private suspend fun buildBackgroundSyncStatus(
+    private fun buildBackgroundSyncStatus(
         config: BackgroundSyncConfig?,
         client: HealthConnectClient?,
         isBgSyncAvailable: Boolean = isBackgroundSyncAvailable(),
@@ -571,9 +570,8 @@ class HealthPlugin : Plugin() {
         } else {
             false
         }
-        val isBgSyncScheduled = withContext(Dispatchers.IO) {
-            if (isBgSyncAvailable) backgroundScheduler.isScheduled() else false
-        }
+        // True after startBackgroundSync() persisted enabled; false after stopBackgroundSync().
+        val isBgSyncScheduled = config?.enabled == true
         return JSObject().apply {
             put("isBgSyncAvailable", isBgSyncAvailable)
             put("isBgPermissionsGranted", bgPermissionsGranted)

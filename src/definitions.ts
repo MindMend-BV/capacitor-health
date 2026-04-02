@@ -133,7 +133,10 @@ export interface BackgroundSyncStatus {
   isBgSyncAvailable: boolean;
   /** Whether the required native permissions are currently granted. */
   isBgPermissionsGranted: boolean;
-  /** Best-effort indication of whether background sync work is currently scheduled. */
+  /**
+   * Android: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`.
+   * Does not reflect WorkManager runtime state.
+   */
   isBgSyncScheduled: boolean;
 }
 
