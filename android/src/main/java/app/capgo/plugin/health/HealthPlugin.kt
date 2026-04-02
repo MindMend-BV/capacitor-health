@@ -1,9 +1,7 @@
 package app.capgo.plugin.health
 
 import android.Manifest
-import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.result.ActivityResult
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
