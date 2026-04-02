@@ -559,7 +559,7 @@ class HealthPlugin : Plugin() {
         }
     }
 
-    private fun buildBackgroundSyncStatus(
+    private suspend fun buildBackgroundSyncStatus(
         config: BackgroundSyncConfig?,
         client: HealthConnectClient?,
         isBgSyncAvailable: Boolean = isBackgroundSyncAvailable(),
