@@ -57,6 +57,7 @@ enum class BackgroundSyncInterval(
 }
 
 data class BackgroundSyncConfig(
+    val subjectId: String,
     val getLastSync: BackgroundSyncApiRequestConfig,
     val postSamples: BackgroundSyncApiRequestConfig,
     val dataTypes: List<HealthDataType>,
@@ -64,6 +65,7 @@ data class BackgroundSyncConfig(
     val enabled: Boolean = false
 ) {
     fun toJson(): JSONObject = JSONObject().apply {
+        put("subjectId", subjectId)
         put("getLastSync", getLastSync.toJson())
         put("postSamples", postSamples.toJson())
         put("dataTypes", JSONArray().apply {
@@ -74,6 +76,7 @@ data class BackgroundSyncConfig(
     }
 
     fun toOptionsJSObject(): JSObject = JSObject().apply {
+        put("subjectId", subjectId)
         put("getLastSync", getLastSync.toJSObject())
         put("postSamples", postSamples.toJSObject())
         put("dataTypes", JSArray().apply {
@@ -100,6 +103,9 @@ data class BackgroundSyncConfig(
             require(dataTypes.isNotEmpty()) { "Background sync requires at least one data type." }
 
             return BackgroundSyncConfig(
+                subjectId = json.optString("subjectId").also {
+                    require(it.isNotBlank()) { "Background sync subjectId is required." }
+                },
                 getLastSync = BackgroundSyncApiRequestConfig.fromJson(
                     json.optJSONObject("getLastSync")
                         ?: throw IllegalArgumentException("Background sync getLastSync configuration is required.")

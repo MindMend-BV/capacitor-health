@@ -425,6 +425,10 @@ class HealthPlugin : Plugin() {
     }
 
     private fun parseBackgroundSyncConfig(call: PluginCall): BackgroundSyncConfig {
+        val subjectId = call.getString("subjectId")
+        if (subjectId.isNullOrBlank()) {
+            throw IllegalArgumentException("subjectId is required.")
+        }
         val getLastSync = parseBackgroundSyncRequest(call.getObject("getLastSync"), "getLastSync")
         val postSamples = parseBackgroundSyncRequest(call.getObject("postSamples"), "postSamples")
         val dataTypes = parseTypeList(call, "dataTypes").distinct()
@@ -435,6 +439,7 @@ class HealthPlugin : Plugin() {
             ?: throw IllegalArgumentException("interval must be one of: 15min, 30min, 1hour, 8hours, 24hours.")
 
         return BackgroundSyncConfig(
+            subjectId = subjectId,
             getLastSync = getLastSync,
             postSamples = postSamples,
             dataTypes = dataTypes,

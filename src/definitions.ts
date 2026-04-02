@@ -110,14 +110,16 @@ export type BackgroundSyncInterval =
   | '24hours';
 
 export interface BackgroundSyncOptions {
+  /** Subject identifier sent in request body to correlate sync records server-side. */
+  subjectId: string;
   /**
    * Backend endpoint used to fetch the last synced timestamp for each datatype.
-   * Expected response shape: `Partial<Record<HealthDataType, string>>`, where each value is an ISO timestamp.
+   * Expected response shape: `{ data: { lastSyncByDataType: Partial<Record<HealthDataType, string>> } }`.
    */
   getLastSync: BackgroundSyncApiRequestOptions;
   /**
    * Backend endpoint used to upload background-collected samples.
-   * Current Android upload body shape: `{ data: HealthSample[] }`.
+   * Current Android upload body shape: `{ subjectId, data: HealthSample[] }`.
    */
   postSamples: BackgroundSyncApiRequestOptions;
   /** Datatypes that should be read during background sync. */

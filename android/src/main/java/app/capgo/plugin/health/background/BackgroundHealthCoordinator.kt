@@ -35,7 +35,7 @@ class BackgroundHealthCoordinator(
         }
 
         val lastSyncMap = try {
-            apiClient.fetchLastSyncMap(config.getLastSync)
+            apiClient.fetchLastSyncMap(config.getLastSync, config.subjectId)
         } catch (error: Exception) {
             Log.w(TAG, "Background sync failed fetching last-sync state.", error)
             return ListenableWorker.Result.retry()
@@ -70,7 +70,7 @@ class BackgroundHealthCoordinator(
         }
 
         return try {
-            apiClient.uploadSamples(config.postSamples, uploadedSamples)
+            apiClient.uploadSamples(config.postSamples, config.subjectId, uploadedSamples)
             ListenableWorker.Result.success()
         } catch (error: Exception) {
             Log.w(TAG, "Background sync upload failed.", error)

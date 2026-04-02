@@ -12,11 +12,19 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class BackgroundHealthApiClient {
-    fun fetchLastSyncMap(config: BackgroundSyncApiRequestConfig): Map<HealthDataType, String> {
-        val connection = openConnection(config, "GET")
+    fun fetchLastSyncMap(config: BackgroundSyncApiRequestConfig, subjectId: String): Map<HealthDataType, String> {
+        val connection = openConnection(config, "POST")
+        connection.doOutput = true
+        connection.setRequestProperty("Content-Type", "application/json")
+        BufferedWriter(OutputStreamWriter(connection.outputStream)).use { writer ->
+            writer.write(JSONObject().put("subjectId", subjectId).toString())
+        }
         return connection.useJsonConnection { response ->
             val json = JSONObject(response)
-            val lastSyncJson = json.optJSONObject("data") ?: json
+            val data = json.optJSONObject("data")
+                ?: throw IllegalArgumentException("Missing data object in last sync response.")
+            val lastSyncJson = data.optJSONObject("lastSyncByDataType")
+                ?: throw IllegalArgumentException("Missing data.lastSyncByDataType in last sync response.")
             buildMap {
                 val keys = lastSyncJson.keys()
                 while (keys.hasNext()) {
@@ -33,8 +41,9 @@ class BackgroundHealthApiClient {
         }
     }
 
-    fun uploadSamples(config: BackgroundSyncApiRequestConfig, samples: JSArray) {
+    fun uploadSamples(config: BackgroundSyncApiRequestConfig, subjectId: String, samples: JSArray) {
         val body = JSONObject().apply {
+            put("subjectId", subjectId)
             put("data", JSONArray(samples.toString()))
         }
         val connection = openConnection(config, "POST")
