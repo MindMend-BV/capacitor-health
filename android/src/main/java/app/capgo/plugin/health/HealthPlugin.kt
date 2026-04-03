@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 )
 class HealthPlugin : Plugin() {
     private val pluginVersion = "7.2.14"
+
     private val manager = HealthManager()
     private val pluginScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val permissionContract = PermissionController.createRequestPermissionResultContract()
@@ -524,7 +525,9 @@ class HealthPlugin : Plugin() {
             return
         }
 
-        if (!backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()) {
+        val hasRuntime = backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()
+
+        if (!hasRuntime) {
             val aliases = mutableListOf<String>()
             if (android.os.Build.VERSION.SDK_INT in 33..35) {
                 aliases += "bodySensorsBackground"
@@ -538,7 +541,9 @@ class HealthPlugin : Plugin() {
             }
         }
 
-        if (!backgroundPermissionChecker.hasHealthConnectPermissions(client, config)) {
+        val hasHc = backgroundPermissionChecker.hasHealthConnectPermissions(client, config)
+
+        if (!hasHc) {
             call.reject("Background sync requires Health Connect read permissions for all configured dataTypes.")
             return
         }
