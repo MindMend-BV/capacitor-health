@@ -69,6 +69,11 @@ class BackgroundHealthCoordinator(
             return ListenableWorker.Result.retry()
         }
 
+        if (uploadedSamples.length() == 0) {
+            // POST /api/health/signals requires non-empty `data`; nothing new from Health Connect this run.
+            return ListenableWorker.Result.success()
+        }
+
         return try {
             apiClient.uploadSamples(config.postSamples, config.subjectId, uploadedSamples)
             ListenableWorker.Result.success()
