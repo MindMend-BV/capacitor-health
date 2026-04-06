@@ -102,12 +102,7 @@ export interface BackgroundSyncApiRequestOptions {
   headers?: Record<string, string>;
 }
 
-export type BackgroundSyncInterval =
-  | '15min'
-  | '30min'
-  | '1hour'
-  | '8hours'
-  | '24hours';
+export type BackgroundSyncInterval = '15min' | '30min' | '1hour' | '8hours' | '24hours';
 
 export interface BackgroundSyncOptions {
   /** Subject identifier sent in request body to correlate sync records server-side. */
