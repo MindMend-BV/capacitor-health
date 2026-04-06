@@ -1,6 +1,5 @@
 package app.capgo.plugin.health.background
 
-import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -12,8 +11,12 @@ class BackgroundHealthPermissionChecker(
     private val context: Context,
     private val healthManager: HealthManager
 ) {
+    /**
+     * Background health sync is only supported on Android 15 (API 35)+ where
+     * [READ_HEALTH_DATA_IN_BACKGROUND] can be requested. Below that, treat as unavailable.
+     */
     fun isBackgroundSyncSupported(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+        return Build.VERSION.SDK_INT >= MIN_SDK_BACKGROUND_SYNC
     }
 
     /**
@@ -30,19 +33,18 @@ class BackgroundHealthPermissionChecker(
     }
 
     /**
-     * Android runtime permissions for background health reads (API 33–35 / 36+), when supported.
+     * [READ_HEALTH_DATA_IN_BACKGROUND] when running on API 35+; always false below that.
      */
     fun hasBackgroundHealthRuntimePermissions(): Boolean {
         if (!isBackgroundSyncSupported()) {
             return false
         }
-        return backgroundHealthRuntimePermissionNames().all { permission ->
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-        }
+        return ContextCompat.checkSelfPermission(context, READ_HEALTH_DATA_IN_BACKGROUND) ==
+            PackageManager.PERMISSION_GRANTED
     }
 
     /**
-     * Full gate: supported API, Health Connect data permissions, and background runtime permissions.
+     * Full gate: supported API, Health Connect data permissions, and background runtime permission.
      */
     suspend fun hasAllPermissionsForBackgroundSync(
         client: HealthConnectClient,
@@ -54,16 +56,11 @@ class BackgroundHealthPermissionChecker(
         return hasHealthConnectPermissions(client, config) && hasBackgroundHealthRuntimePermissions()
     }
 
-    private fun backgroundHealthRuntimePermissionNames(): List<String> {
-        val permissions = mutableListOf<String>()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            Build.VERSION.SDK_INT < 36
-        ) {
-            permissions += Manifest.permission.BODY_SENSORS_BACKGROUND
-        }
-        if (Build.VERSION.SDK_INT >= 36) {
-            permissions += "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
-        }
-        return permissions
+    companion object {
+        /** Android 15 — background Health Connect reads require [READ_HEALTH_DATA_IN_BACKGROUND]. */
+        private const val MIN_SDK_BACKGROUND_SYNC = 35
+
+        private const val READ_HEALTH_DATA_IN_BACKGROUND =
+            "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
     }
 }

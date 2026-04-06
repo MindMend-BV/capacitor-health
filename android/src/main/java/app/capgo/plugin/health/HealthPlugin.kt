@@ -1,6 +1,5 @@
 package app.capgo.plugin.health
 
-import android.Manifest
 import android.content.Intent
 import androidx.activity.result.ActivityResult
 import com.getcapacitor.JSArray
@@ -32,10 +31,6 @@ import kotlinx.coroutines.launch
 @CapacitorPlugin(
     name = "Health",
     permissions = [
-        Permission(
-            alias = "bodySensorsBackground",
-            strings = [Manifest.permission.BODY_SENSORS_BACKGROUND]
-        ),
         Permission(
             alias = "readHealthDataInBackground",
             strings = ["android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"]
@@ -511,7 +506,7 @@ class HealthPlugin : Plugin() {
 
     private fun backgroundSyncUnavailableReason(): String {
         if (!backgroundPermissionChecker.isBackgroundSyncSupported()) {
-            return "Background sync requires Android API level 33 or higher."
+            return "Background sync requires Android API level 35 or higher (Android 15+)."
         }
         val status = HealthConnectClient.getSdkStatus(context)
         return availabilityReason(status)
@@ -528,15 +523,12 @@ class HealthPlugin : Plugin() {
         val hasRuntime = backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()
 
         if (!hasRuntime) {
-            val aliases = mutableListOf<String>()
-            if (android.os.Build.VERSION.SDK_INT in 33..35) {
-                aliases += "bodySensorsBackground"
-            }
-            if (android.os.Build.VERSION.SDK_INT >= 36) {
-                aliases += "readHealthDataInBackground"
-            }
-            if (aliases.isNotEmpty()) {
-                requestPermissionForAliases(aliases.toTypedArray(), call, "handleBackgroundRuntimePermissionResult")
+            if (android.os.Build.VERSION.SDK_INT >= 35) {
+                requestPermissionForAliases(
+                    arrayOf("readHealthDataInBackground"),
+                    call,
+                    "handleBackgroundRuntimePermissionResult"
+                )
                 return
             }
         }
