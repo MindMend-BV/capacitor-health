@@ -1,10 +1,13 @@
 package app.capgo.plugin.health.background
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import org.json.JSONObject
 
 class BackgroundHealthPreferences(context: Context) {
-    private val preferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    private val preferences: SharedPreferences = createEncryptedPreferences(context.applicationContext)
 
     fun getConfig(): BackgroundSyncConfig? {
         val rawConfig = preferences.getString(KEY_CONFIG, null) ?: return null
@@ -22,6 +25,19 @@ class BackgroundHealthPreferences(context: Context) {
     fun setEnabled(enabled: Boolean) {
         val config = getConfig() ?: return
         saveConfig(config.withEnabled(enabled))
+    }
+
+    private fun createEncryptedPreferences(appContext: Context): SharedPreferences {
+        val masterKey = MasterKey.Builder(appContext)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+        return EncryptedSharedPreferences.create(
+            appContext,
+            PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
     }
 
     companion object {

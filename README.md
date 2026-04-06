@@ -128,6 +128,12 @@ await Health.showPrivacyPolicy();
 await Health.openHealthConnectSettings();
 ```
 
+### Android background sync: security and scheduling
+
+**Security:** On Android, background sync configuration (API URLs, optional HTTP headers such as `Authorization`, `subjectId`, and related options) is stored using **EncryptedSharedPreferences**. That raises the bar against casual inspection of app storage but is **not** a substitute for token hygiene: prefer short-lived access tokens, refresh strategies, and your own assumptions for rooted or compromised devices.
+
+**Changing `interval` or rescheduling:** `configureBackgroundSync()` updates persisted options only; it does **not** reschedule WorkManager. To apply a new `interval` or other schedule-related changes while using background sync, call **`stopBackgroundSync()`**, then **`configureBackgroundSync(...)`** with the new options, then **`startBackgroundSync()`** again.
+
 ## Usage
 
 ```ts
@@ -511,6 +517,8 @@ configureBackgroundSync(options: BackgroundSyncOptions) => Promise<BackgroundSyn
 
 Configures the backend endpoints and datatypes used by native background sync.
 Uploads are performed natively when background work is triggered.
+
+Updating options here does not reschedule periodic work on Android. To apply a new `interval` (or similar), stop background sync, call `configureBackgroundSync` again, then `startBackgroundSync`. See [Android background sync: security and scheduling](#android-background-sync-security-and-scheduling).
 
 | Param         | Type                                                                    |
 | ------------- | ----------------------------------------------------------------------- |

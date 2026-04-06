@@ -336,11 +336,11 @@ class HealthPlugin : Plugin() {
                 return@launch
             }
             if (!backgroundPermissionChecker.hasHealthConnectPermissions(client, config)) {
-                call.reject("Background sync permissions must be granted during configureBackgroundSync().")
+                call.reject("Background sync requires Health Connect read permissions for all configured dataTypes.")
                 return@launch
             }
             if (!backgroundPermissionChecker.hasBackgroundHealthRuntimePermissions()) {
-                call.reject("Background sync permissions must be granted during configureBackgroundSync().")
+                call.reject("Background sync requires Android background health permissions.")
                 return@launch
             }
 

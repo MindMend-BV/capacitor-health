@@ -9,6 +9,8 @@ import app.capgo.plugin.health.HealthManager
 import com.getcapacitor.JSArray
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 
 class BackgroundHealthCoordinator(
     private val context: Context,
@@ -41,18 +43,17 @@ class BackgroundHealthCoordinator(
             return ListenableWorker.Result.retry()
         }
 
-        val endTime = Instant.now()
         val uploadedSamples = JSArray()
         var successfulReadCount = 0
 
         config.dataTypes.forEach { dataType ->
             try {
-                val startTime = resolveStartTime(lastSyncMap, dataType, endTime)
+                val window = resolveReadWindow(lastSyncMap, dataType)
                 val samples = healthManager.readSamples(
                     client = client,
                     dataType = dataType,
-                    startTime = startTime,
-                    endTime = endTime,
+                    startTime = window.start,
+                    endTime = window.end,
                     limit = 0,
                     ascending = true
                 )
@@ -83,26 +84,42 @@ class BackgroundHealthCoordinator(
         }
     }
 
-    private fun resolveStartTime(
+    /**
+     * Resolves the Health Connect read interval for one [dataType].
+     *
+     * Uses [Instant.now] at call time as the upper bound where applicable.
+     *
+     * 1. No last-sync entry: start = local midnight today, end = now.
+     * 2. Last sync more than 24h before now: start = stored instant, end = that instant + 24h (backfill chunk).
+     * 3. Otherwise: start = stored instant, end = now.
+     */
+    private fun resolveReadWindow(
         lastSyncMap: Map<HealthDataType, String>,
-        dataType: HealthDataType,
-        endTime: Instant
-    ): Instant {
-        val lastSync = lastSyncMap[dataType]?.let { timestamp ->
-            try {
-                Instant.parse(timestamp)
-            } catch (error: Exception) {
-                throw IllegalArgumentException("Invalid ISO timestamp for ${dataType.identifier}: $timestamp", error)
-            }
-        } ?: return endTime.minus(MAX_WINDOW)
-
-        val resolved = if (lastSync.isBefore(endTime.minus(MAX_WINDOW))) {
-            lastSync.plus(MAX_WINDOW)
-        } else {
-            lastSync
+        dataType: HealthDataType
+    ): ReadWindow {
+        val now = Instant.now()
+        val raw = lastSyncMap[dataType]
+        if (raw == null) {
+            val zone = ZoneId.systemDefault()
+            val startOfToday = LocalDate.now(zone).atStartOfDay(zone).toInstant()
+            return ReadWindow(start = startOfToday, end = now)
         }
-        return if (resolved.isAfter(endTime)) endTime else resolved
+
+        val lastSyncTimestamp = try {
+            Instant.parse(raw)
+        } catch (error: Exception) {
+            throw IllegalArgumentException("Invalid ISO timestamp for ${dataType.identifier}: $raw", error)
+        }
+
+        val cutoff = now.minus(MAX_WINDOW)
+        return if (lastSyncTimestamp.isBefore(cutoff)) {
+            ReadWindow(start = lastSyncTimestamp, end = lastSyncTimestamp.plus(MAX_WINDOW))
+        } else {
+            ReadWindow(start = lastSyncTimestamp, end = now)
+        }
     }
+
+    private data class ReadWindow(val start: Instant, val end: Instant)
 
     companion object {
         private val MAX_WINDOW: Duration = Duration.ofHours(24)

@@ -11,7 +11,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import org.json.JSONArray
 import org.json.JSONObject
 
 class BackgroundHealthApiClient {
@@ -55,7 +54,7 @@ class BackgroundHealthApiClient {
     fun uploadSamples(config: BackgroundSyncApiRequestConfig, subjectId: String, samples: JSArray) {
         val body = JSONObject().apply {
             put("subjectId", subjectId)
-            put("data", JSONArray(samples.toString()))
+            put("data", samples)
         }
         val connection = openConnection(config, "POST")
         connection.doOutput = true
