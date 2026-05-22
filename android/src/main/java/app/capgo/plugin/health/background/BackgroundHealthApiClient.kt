@@ -60,6 +60,7 @@ class BackgroundHealthApiClient {
                 JSONObject().apply {
                     put("healthSubjectId", subjectId)
                     put("sourcePlatform", "HEALTH_CONNECT")
+                    put("deliveredViaBackgroundSync", true)
                     put("samples", samples)
                 }
             )
