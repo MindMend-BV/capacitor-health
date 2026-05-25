@@ -5,7 +5,6 @@ final class BackgroundHealthDeliveryManager {
     private let healthStore = HKHealthStore()
     private let syncQueue = DispatchQueue(label: "capgo.health.background.sync", qos: .utility)
     private var observerQueries: [HKObserverQuery] = []
-    private var isRunningSync = false
     private var onSyncRequested: (() -> Void)?
 
     func setSyncHandler(_ handler: @escaping () -> Void) {
@@ -91,16 +90,7 @@ final class BackgroundHealthDeliveryManager {
 
     private func requestSync() {
         syncQueue.async { [weak self] in
-            guard let self = self else { return }
-            guard !self.isRunningSync else { return }
-            self.isRunningSync = true
-            let handler = self.onSyncRequested
-            DispatchQueue.global(qos: .utility).async {
-                handler?()
-                self.syncQueue.async {
-                    self.isRunningSync = false
-                }
-            }
+            self?.onSyncRequested?()
         }
     }
 

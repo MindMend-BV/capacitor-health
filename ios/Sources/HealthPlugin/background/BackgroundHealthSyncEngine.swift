@@ -9,6 +9,8 @@ public final class BackgroundHealthSyncEngine {
     private let coordinator = BackgroundHealthCoordinator()
     private let permissionChecker = BackgroundHealthPermissionChecker()
     private let deliveryManager = BackgroundHealthDeliveryManager()
+    private let syncQueue = DispatchQueue(label: "capgo.health.background.sync.coordinator", qos: .utility)
+    private var isRunningSync = false
 
     private init() {
         deliveryManager.setSyncHandler { [weak self] in
@@ -27,8 +29,25 @@ public final class BackgroundHealthSyncEngine {
     }
 
     public func performSync(completion: @escaping (Bool) -> Void) {
-        coordinator.run(health: health) { outcome in
-            completion(outcome == .success)
+        syncQueue.async { [weak self] in
+            guard let self = self else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            if self.isRunningSync {
+                DispatchQueue.main.async { completion(true) }
+                return
+            }
+            self.isRunningSync = true
+            self.coordinator.run(health: self.health) { outcome in
+                self.syncQueue.async {
+                    self.isRunningSync = false
+                }
+                let success = outcome == .success
+                DispatchQueue.main.async {
+                    completion(success)
+                }
+            }
         }
     }
 

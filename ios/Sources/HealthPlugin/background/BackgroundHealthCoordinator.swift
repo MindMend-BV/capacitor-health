@@ -126,9 +126,11 @@ final class BackgroundHealthCoordinator {
         }
 
         let cutoff = now.addingTimeInterval(-Self.maxWindow)
+        // +1ms after lastSync matches JS foreground upload (avoids re-reading boundary samples).
+        let startAfterLastSync = lastSync.addingTimeInterval(0.001)
         if lastSync < cutoff {
-            return (lastSync, lastSync.addingTimeInterval(Self.maxWindow))
+            return (startAfterLastSync, lastSync.addingTimeInterval(Self.maxWindow))
         }
-        return (lastSync, now)
+        return (startAfterLastSync, now)
     }
 }
