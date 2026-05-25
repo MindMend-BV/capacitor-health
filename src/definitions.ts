@@ -130,7 +130,10 @@ export interface BackgroundSyncOptions {
   postSamples: BackgroundSyncApiRequestOptions;
   /** Datatypes that should be read during background sync. */
   dataTypes: HealthDataType[];
-  /** Requested Android periodic sync interval. Actual execution remains inexact per WorkManager rules. */
+  /**
+   * Requested background sync interval. Android: WorkManager periodic (inexact). iOS: HealthKit delivery
+   * frequency + BGAppRefreshTask fallback (best-effort).
+   */
   interval: BackgroundSyncInterval;
 }
 
@@ -140,10 +143,15 @@ export interface BackgroundSyncStatus {
   /** Whether the required native permissions are currently granted. */
   isBgPermissionsGranted: boolean;
   /**
-   * Android: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`.
-   * Does not reflect WorkManager runtime state.
+   * Native: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`.
+   * Android: does not reflect WorkManager runtime state. iOS: does not reflect live observer state.
    */
   isBgSyncScheduled: boolean;
+}
+
+export interface StopBackgroundSyncOptions {
+  /** When true, removes persisted sync configuration (URLs, headers, subjectId) in addition to disabling sync. */
+  clearConfiguration?: boolean;
 }
 
 export type WorkoutType =
@@ -468,7 +476,7 @@ export interface HealthPlugin {
   /**
    * Disables native background health sync.
    */
-  stopBackgroundSync(): Promise<BackgroundSyncStatus>;
+  stopBackgroundSync(options?: StopBackgroundSyncOptions): Promise<BackgroundSyncStatus>;
 
   /**
    * Returns the current background sync configuration and runtime status.
