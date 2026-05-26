@@ -11,6 +11,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.sync.Mutex
 
 class BackgroundHealthCoordinator(
     private val context: Context,
@@ -21,6 +22,17 @@ class BackgroundHealthCoordinator(
     private val apiClient: BackgroundHealthApiClient = BackgroundHealthApiClient()
 ) {
     suspend fun run(): ListenableWorker.Result {
+        if (!runMutex.tryLock()) {
+            return ListenableWorker.Result.success()
+        }
+        return try {
+            runLocked()
+        } finally {
+            runMutex.unlock()
+        }
+    }
+
+    private suspend fun runLocked(): ListenableWorker.Result {
         val config = preferences.getConfig() ?: return ListenableWorker.Result.success()
         if (!config.enabled) {
             return ListenableWorker.Result.success()
@@ -91,7 +103,7 @@ class BackgroundHealthCoordinator(
      *
      * 1. No last-sync entry: start = local midnight today, end = now.
      * 2. Last sync more than 24h before now: start = stored instant, end = that instant + 24h (backfill chunk).
-     * 3. Otherwise: start = stored instant, end = now.
+     * 3. Otherwise: start = stored instant + 1ms, end = now (matches JS foreground upload).
      */
     private fun resolveReadWindow(
         lastSyncMap: Map<HealthDataType, String>,
@@ -112,10 +124,11 @@ class BackgroundHealthCoordinator(
         }
 
         val cutoff = now.minus(MAX_WINDOW)
+        val startAfterLastSync = lastSyncTimestamp.plusMillis(1)
         return if (lastSyncTimestamp.isBefore(cutoff)) {
-            ReadWindow(start = lastSyncTimestamp, end = lastSyncTimestamp.plus(MAX_WINDOW))
+            ReadWindow(start = startAfterLastSync, end = lastSyncTimestamp.plus(MAX_WINDOW))
         } else {
-            ReadWindow(start = lastSyncTimestamp, end = now)
+            ReadWindow(start = startAfterLastSync, end = now)
         }
     }
 
@@ -124,5 +137,6 @@ class BackgroundHealthCoordinator(
     companion object {
         private val MAX_WINDOW: Duration = Duration.ofHours(24)
         private const val TAG = "BackgroundHealthSync"
+        private val runMutex = Mutex()
     }
 }

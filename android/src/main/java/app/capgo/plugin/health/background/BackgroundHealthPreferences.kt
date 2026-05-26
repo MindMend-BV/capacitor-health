@@ -46,6 +46,10 @@ class BackgroundHealthPreferences(context: Context) {
         saveConfig(config.withEnabled(enabled))
     }
 
+    fun clearConfiguration() {
+        clearEncryptedPrefsState()
+    }
+
     @Suppress("DEPRECATION")
     private fun createEncryptedPreferences(appContext: Context): SharedPreferences {
         val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)

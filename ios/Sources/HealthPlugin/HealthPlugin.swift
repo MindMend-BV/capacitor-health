@@ -24,6 +24,13 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
     ]
 
     private let implementation = Health()
+    private let backgroundPreferences = BackgroundHealthPreferences()
+    private let backgroundPermissionChecker = BackgroundHealthPermissionChecker()
+    private let backgroundSyncEngine = BackgroundHealthSyncEngine.shared
+
+    public override func load() {
+        backgroundSyncEngine.restoreIfNeeded()
+    }
 
     @objc func isAvailable(_ call: CAPPluginCall) {
         call.resolve(implementation.availabilityPayload())
@@ -214,39 +221,151 @@ public class HealthPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func configureBackgroundSync(_ call: CAPPluginCall) {
-        // No-op on iOS for now.
-        call.resolve([
-            "isBgSyncAvailable": false,
-            "isBgPermissionsGranted": false,
-            "isBgSyncScheduled": false
-        ])
+        guard backgroundPermissionChecker.isBackgroundSyncSupported() else {
+            call.resolve(unavailableBackgroundSyncStatus())
+            return
+        }
+
+        do {
+            var config = try parseBackgroundSyncConfig(from: call)
+            if let existing = backgroundPreferences.getConfig() {
+                config.enabled = existing.enabled
+            }
+            try backgroundPreferences.saveConfig(config)
+            resolveBackgroundSyncStatus(config: config, call: call)
+        } catch {
+            call.reject(error.localizedDescription, nil, error)
+        }
     }
 
     @objc func startBackgroundSync(_ call: CAPPluginCall) {
-        // No-op on iOS for now.
-        call.resolve([
-            "isBgSyncAvailable": false,
-            "isBgPermissionsGranted": false,
-            "isBgSyncScheduled": false
-        ])
+        guard backgroundPermissionChecker.isBackgroundSyncSupported() else {
+            call.resolve(unavailableBackgroundSyncStatus())
+            return
+        }
+
+        do {
+            var config = try backgroundPreferences.requireConfig()
+            backgroundSyncEngine.checkPermissions(for: config) { [weak self] hasReadPermissions in
+                guard let self = self else { return }
+                guard hasReadPermissions else {
+                    call.reject("Background sync requires HealthKit read permissions for all configured dataTypes.")
+                    return
+                }
+
+                self.backgroundSyncEngine.deliveryManagerForPlugin.start(config: config) { deliveryOk in
+                    guard deliveryOk else {
+                        call.reject("Background sync requires HealthKit background delivery for all configured dataTypes.")
+                        return
+                    }
+
+                    config = config.withEnabled(true)
+                    do {
+                        try self.backgroundPreferences.saveConfig(config)
+                        BackgroundHealthTaskScheduler.schedule(config: config)
+                        self.resolveBackgroundSyncStatus(config: config, call: call, permissionsGranted: true)
+                    } catch {
+                        call.reject(error.localizedDescription, nil, error)
+                    }
+                }
+            }
+        } catch {
+            call.reject(error.localizedDescription, nil, error)
+        }
     }
 
     @objc func stopBackgroundSync(_ call: CAPPluginCall) {
-        // No-op on iOS for now.
-        call.resolve([
-            "isBgSyncAvailable": false,
-            "isBgPermissionsGranted": false,
-            "isBgSyncScheduled": false
-        ])
+        let clearConfiguration = call.getBool("clearConfiguration") ?? false
+
+        backgroundSyncEngine.deliveryManagerForPlugin.stop()
+        BackgroundHealthTaskScheduler.cancel()
+
+        if clearConfiguration {
+            backgroundPreferences.clearConfiguration()
+            call.resolve([
+                "isBgSyncAvailable": backgroundPermissionChecker.isBackgroundSyncSupported(),
+                "isBgPermissionsGranted": false,
+                "isBgSyncScheduled": false
+            ])
+            return
+        }
+
+        backgroundPreferences.setEnabled(false)
+        let config = backgroundPreferences.getConfig()
+        resolveBackgroundSyncStatus(config: config, call: call)
     }
 
     @objc func getBackgroundSyncStatus(_ call: CAPPluginCall) {
-        // No-op on iOS for now.
-        call.resolve([
+        guard backgroundPermissionChecker.isBackgroundSyncSupported() else {
+            call.resolve(unavailableBackgroundSyncStatus())
+            return
+        }
+
+        let config = backgroundPreferences.getConfig()
+        resolveBackgroundSyncStatus(config: config, call: call)
+    }
+
+    private func resolveBackgroundSyncStatus(
+        config: BackgroundSyncConfig?,
+        call: CAPPluginCall,
+        permissionsGranted: Bool? = nil
+    ) {
+        guard let config = config else {
+            backgroundSyncEngine.buildStatus(config: nil, permissionsGranted: false) { payload in
+                DispatchQueue.main.async {
+                    call.resolve(payload)
+                }
+            }
+            return
+        }
+
+        if let permissionsGranted = permissionsGranted {
+            backgroundSyncEngine.buildStatus(config: config, permissionsGranted: permissionsGranted) { payload in
+                DispatchQueue.main.async {
+                    call.resolve(payload)
+                }
+            }
+            return
+        }
+
+        backgroundSyncEngine.checkPermissions(for: config) { granted in
+            self.backgroundSyncEngine.buildStatus(config: config, permissionsGranted: granted) { payload in
+                DispatchQueue.main.async {
+                    call.resolve(payload)
+                }
+            }
+        }
+    }
+
+    private func unavailableBackgroundSyncStatus() -> [String: Any] {
+        [
             "isBgSyncAvailable": false,
             "isBgPermissionsGranted": false,
             "isBgSyncScheduled": false
-        ])
+        ]
     }
 
+    private func parseBackgroundSyncConfig(from call: CAPPluginCall) throws -> BackgroundSyncConfig {
+        var payload: [String: Any] = [:]
+
+        if let subjectId = call.getString("subjectId") {
+            payload["subjectId"] = subjectId
+        }
+        if let interval = call.getString("interval") {
+            payload["interval"] = interval
+        }
+        if let getLastSync = call.getObject("getLastSync") as? [String: Any] {
+            payload["getLastSync"] = getLastSync
+        }
+        if let postSamples = call.getObject("postSamples") as? [String: Any] {
+            payload["postSamples"] = postSamples
+        }
+        if let dataTypes = call.getArray("dataTypes") as? [String] {
+            payload["dataTypes"] = dataTypes
+        } else if let dataTypes = call.getArray("dataTypes") {
+            payload["dataTypes"] = dataTypes.compactMap { $0 as? String }
+        }
+
+        return try BackgroundSyncConfig.from(pluginCall: payload)
+    }
 }

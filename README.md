@@ -339,7 +339,7 @@ const { samples: avgHR } = await Health.queryAggregated({
 * [`queryAggregated(...)`](#queryaggregated)
 * [`configureBackgroundSync(...)`](#configurebackgroundsync)
 * [`startBackgroundSync()`](#startbackgroundsync)
-* [`stopBackgroundSync()`](#stopbackgroundsync)
+* [`stopBackgroundSync(...)`](#stopbackgroundsync)
 * [`getBackgroundSyncStatus()`](#getbackgroundsyncstatus)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
@@ -546,13 +546,17 @@ On Android this schedules periodic work after required permissions are granted.
 --------------------
 
 
-### stopBackgroundSync()
+### stopBackgroundSync(...)
 
 ```typescript
-stopBackgroundSync() => Promise<BackgroundSyncStatus>
+stopBackgroundSync(options?: StopBackgroundSyncOptions | undefined) => Promise<BackgroundSyncStatus>
 ```
 
 Disables native background health sync.
+
+| Param         | Type                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#stopbackgroundsyncoptions">StopBackgroundSyncOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#backgroundsyncstatus">BackgroundSyncStatus</a>&gt;</code>
 
@@ -717,11 +721,11 @@ Returns the current background sync configuration and runtime status.
 
 #### BackgroundSyncStatus
 
-| Prop                         | Type                 | Description                                                                                                                                      |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.                                                                            |
-| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                                                                                   |
-| **`isBgSyncScheduled`**      | <code>boolean</code> | Android: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`. Does not reflect WorkManager runtime state. |
+| Prop                         | Type                 | Description                                                                                                                                                                                         |
+| ---------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.                                                                                                                               |
+| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                                                                                                                                      |
+| **`isBgSyncScheduled`**      | <code>boolean</code> | Native: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`. Android: does not reflect WorkManager runtime state. iOS: does not reflect live observer state. |
 
 
 #### BackgroundSyncOptions
@@ -732,7 +736,7 @@ Returns the current background sync configuration and runtime status.
 | **`getLastSync`** | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code>                                                                                                                                                                                                                                                                                                                                        | Backend endpoint used to fetch the last synced timestamp for each datatype. Configure URL to the collection base (e.g. `/api/health/signal-last-sync`); the native worker appends `/{urlEncodedSubjectId}`. Expected MindMend / AD-027 list shape: `{ data: { items: { dataType: <a href="#healthdatatype">HealthDataType</a>; lastSyncAt: string }[], meta: … } }`. |
 | **`postSamples`** | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code>                                                                                                                                                                                                                                                                                                                                        | Backend endpoint used to upload background-collected samples. MindMend / AD-028 body: `{ data: { healthSubjectId, sourcePlatform?, samples: HealthSample[] } }`.                                                                                                                                                                                                     |
 | **`dataTypes`**   | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> | Datatypes that should be read during background sync.                                                                                                                                                                                                                                                                                                                |
-| **`interval`**    | <code><a href="#backgroundsyncinterval">BackgroundSyncInterval</a></code>                                                                                                                                                                                                                                                                                                                                                          | Requested Android periodic sync interval. Actual execution remains inexact per WorkManager rules.                                                                                                                                                                                                                                                                    |
+| **`interval`**    | <code><a href="#backgroundsyncinterval">BackgroundSyncInterval</a></code>                                                                                                                                                                                                                                                                                                                                                          | Requested background sync interval. Android: WorkManager periodic (inexact). iOS: HealthKit delivery frequency + BGAppRefreshTask fallback (best-effort).                                                                                                                                                                                                            |
 
 
 #### BackgroundSyncApiRequestOptions
@@ -741,6 +745,13 @@ Returns the current background sync configuration and runtime status.
 | ------------- | --------------------------------------------------------------- | -------------------------------------------------------------------- |
 | **`url`**     | <code>string</code>                                             | URL used by the native background sync API request.                  |
 | **`headers`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Optional HTTP headers persisted for native background sync requests. |
+
+
+#### StopBackgroundSyncOptions
+
+| Prop                     | Type                 | Description                                                                                               |
+| ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| **`clearConfiguration`** | <code>boolean</code> | When true, removes persisted sync configuration (URLs, headers, subjectId) in addition to disabling sync. |
 
 
 ### Type Aliases

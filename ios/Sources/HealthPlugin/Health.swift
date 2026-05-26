@@ -864,7 +864,7 @@ final class Health {
 
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: [])
         let sortDescriptor = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: ascending)
-        let queryLimit = limit ?? 100
+        let queryLimit = (limit == 0) ? HKObjectQueryNoLimit : (limit ?? 100)
 
         // Handle sleep as a category sample
         if dataType == .sleep {

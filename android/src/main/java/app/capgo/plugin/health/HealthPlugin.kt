@@ -351,6 +351,26 @@ class HealthPlugin : Plugin() {
 
     @PluginMethod
     fun stopBackgroundSync(call: PluginCall) {
+        val clearConfiguration = call.getBoolean("clearConfiguration", false) ?: false
+        if (clearConfiguration) {
+            pluginScope.launch {
+                try {
+                    backgroundScheduler.cancel()
+                    backgroundPreferences.clearConfiguration()
+                    val isBgSyncAvailable = isBackgroundSyncAvailable()
+                    call.resolve(
+                        JSObject().apply {
+                            put("isBgSyncAvailable", isBgSyncAvailable)
+                            put("isBgPermissionsGranted", false)
+                            put("isBgSyncScheduled", false)
+                        }
+                    )
+                } catch (e: Exception) {
+                    call.reject(e.message ?: "Failed to stop background sync.", null, e)
+                }
+            }
+            return
+        }
         rejectIfBackgroundSyncUnavailable(call)?.let { return }
         pluginScope.launch {
             try {
