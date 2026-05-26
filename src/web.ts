@@ -13,6 +13,7 @@ import type {
   QueryWorkoutsOptions,
   QueryWorkoutsResult,
   ReadSamplesResult,
+  StopBackgroundSyncOptions,
   WriteSampleOptions,
 } from './definitions';
 
@@ -69,9 +70,7 @@ export class HealthWeb extends WebPlugin implements HealthPlugin {
     throw this.unimplemented('Background health sync is only available on native platforms.');
   }
 
-  async stopBackgroundSync(
-    _options?: import('./definitions').StopBackgroundSyncOptions
-  ): Promise<BackgroundSyncStatus> {
+  async stopBackgroundSync(_options?: StopBackgroundSyncOptions): Promise<BackgroundSyncStatus> {
     throw this.unimplemented('Background health sync is only available on native platforms.');
   }
 

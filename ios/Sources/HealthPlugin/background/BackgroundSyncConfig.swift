@@ -23,7 +23,7 @@ struct BackgroundSyncApiRequestConfig: Codable, Equatable {
     }
 }
 
-enum BackgroundSyncInterval: String, Codable, CaseIterable {
+enum BackgroundSyncInterval: String, Codable {
     case fifteenMinutes = "15min"
     case thirtyMinutes = "30min"
     case oneHour = "1hour"
@@ -38,11 +38,6 @@ enum BackgroundSyncInterval: String, Codable, CaseIterable {
         case .eightHours: return 480
         case .twentyFourHours: return 1440
         }
-    }
-
-    static func from(identifier: String?) -> BackgroundSyncInterval? {
-        guard let identifier = identifier else { return nil }
-        return BackgroundSyncInterval(rawValue: identifier)
     }
 }
 
@@ -79,7 +74,7 @@ struct BackgroundSyncConfig: Codable, Equatable {
             }
         }
         guard let intervalRaw = dictionary["interval"] as? String,
-              let interval = BackgroundSyncInterval.from(identifier: intervalRaw) else {
+              let interval = BackgroundSyncInterval(rawValue: intervalRaw) else {
             throw BackgroundSyncConfigError.invalidValue("interval")
         }
         return BackgroundSyncConfig(
