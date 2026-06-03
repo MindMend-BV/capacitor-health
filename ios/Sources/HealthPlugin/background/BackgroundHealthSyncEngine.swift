@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Shared entry point for HealthKit observer callbacks and BGAppRefreshTask.
 public final class BackgroundHealthSyncEngine {
@@ -29,6 +32,12 @@ public final class BackgroundHealthSyncEngine {
     }
 
     public func performSync(completion: @escaping (Bool) -> Void) {
+        // While the app is active the JS foreground upload owns syncing; skipping here avoids
+        // foreground + background both uploading the same last-sync window (duplicate signals).
+        if isAppActive() {
+            completion(true)
+            return
+        }
         syncQueue.async { [weak self] in
             guard let self = self else {
                 DispatchQueue.main.async { completion(false) }
@@ -67,5 +76,21 @@ public final class BackgroundHealthSyncEngine {
 
     func checkPermissions(for config: BackgroundSyncConfig, completion: @escaping (Bool) -> Void) {
         permissionChecker.hasReadAuthorization(for: config.dataTypes, completion: completion)
+    }
+
+    /// True when the app is in the foreground (active/inactive). HealthKit observers and BGAppRefreshTask
+    /// can fire while the app is alive; in that case the JS foreground upload handles syncing instead.
+    private func isAppActive() -> Bool {
+        #if canImport(UIKit)
+        let check: () -> Bool = {
+            UIApplication.shared.applicationState != .background
+        }
+        if Thread.isMainThread {
+            return check()
+        }
+        return DispatchQueue.main.sync(execute: check)
+        #else
+        return false
+        #endif
     }
 }

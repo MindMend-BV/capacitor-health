@@ -3,6 +3,8 @@ package app.capgo.plugin.health.background
 import android.content.Context
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.ListenableWorker
 import app.capgo.plugin.health.HealthDataType
 import app.capgo.plugin.health.HealthManager
@@ -11,7 +13,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 
 class BackgroundHealthCoordinator(
     private val context: Context,
@@ -35,6 +39,13 @@ class BackgroundHealthCoordinator(
     private suspend fun runLocked(): ListenableWorker.Result {
         val config = preferences.getConfig() ?: return ListenableWorker.Result.success()
         if (!config.enabled) {
+            return ListenableWorker.Result.success()
+        }
+
+        // While the app is in the foreground the JS foreground upload owns syncing; skipping here
+        // avoids foreground + background both uploading the same last-sync window (duplicate signals).
+        if (isAppInForeground()) {
+            Log.i(TAG, "Skipping background sync; app is in the foreground.")
             return ListenableWorker.Result.success()
         }
 
@@ -130,6 +141,14 @@ class BackgroundHealthCoordinator(
         } else {
             ReadWindow(start = startAfterLastSync, end = now)
         }
+    }
+
+    /**
+     * True when any Activity is started/resumed. Reads the process lifecycle on the main thread,
+     * which reflects UI foreground state and is not skewed by this background worker running.
+     */
+    private suspend fun isAppInForeground(): Boolean = withContext(Dispatchers.Main) {
+        ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 
     private data class ReadWindow(val start: Instant, val end: Instant)
