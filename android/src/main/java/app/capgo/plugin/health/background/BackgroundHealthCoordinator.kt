@@ -3,6 +3,8 @@ package app.capgo.plugin.health.background
 import android.content.Context
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.ListenableWorker
 import app.capgo.plugin.health.HealthDataType
 import app.capgo.plugin.health.HealthManager
@@ -11,6 +13,9 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.withContext
 
 class BackgroundHealthCoordinator(
     private val context: Context,
@@ -21,8 +26,26 @@ class BackgroundHealthCoordinator(
     private val apiClient: BackgroundHealthApiClient = BackgroundHealthApiClient()
 ) {
     suspend fun run(): ListenableWorker.Result {
+        if (!runMutex.tryLock()) {
+            return ListenableWorker.Result.success()
+        }
+        return try {
+            runLocked()
+        } finally {
+            runMutex.unlock()
+        }
+    }
+
+    private suspend fun runLocked(): ListenableWorker.Result {
         val config = preferences.getConfig() ?: return ListenableWorker.Result.success()
         if (!config.enabled) {
+            return ListenableWorker.Result.success()
+        }
+
+        // While the app is in the foreground the JS foreground upload owns syncing; skipping here
+        // avoids foreground + background both uploading the same last-sync window (duplicate signals).
+        if (isAppInForeground()) {
+            Log.i(TAG, "Skipping background sync; app is in the foreground.")
             return ListenableWorker.Result.success()
         }
 
@@ -71,7 +94,7 @@ class BackgroundHealthCoordinator(
         }
 
         if (uploadedSamples.length() == 0) {
-            // POST /api/health/signals requires non-empty `data`; nothing new from Health Connect this run.
+            // POST /api/health/raw-payloads requires non-empty `samples`; nothing new from Health Connect this run.
             return ListenableWorker.Result.success()
         }
 
@@ -91,7 +114,7 @@ class BackgroundHealthCoordinator(
      *
      * 1. No last-sync entry: start = local midnight today, end = now.
      * 2. Last sync more than 24h before now: start = stored instant, end = that instant + 24h (backfill chunk).
-     * 3. Otherwise: start = stored instant, end = now.
+     * 3. Otherwise: start = stored instant + 1ms, end = now (matches JS foreground upload).
      */
     private fun resolveReadWindow(
         lastSyncMap: Map<HealthDataType, String>,
@@ -112,11 +135,20 @@ class BackgroundHealthCoordinator(
         }
 
         val cutoff = now.minus(MAX_WINDOW)
+        val startAfterLastSync = lastSyncTimestamp.plusMillis(1)
         return if (lastSyncTimestamp.isBefore(cutoff)) {
-            ReadWindow(start = lastSyncTimestamp, end = lastSyncTimestamp.plus(MAX_WINDOW))
+            ReadWindow(start = startAfterLastSync, end = lastSyncTimestamp.plus(MAX_WINDOW))
         } else {
-            ReadWindow(start = lastSyncTimestamp, end = now)
+            ReadWindow(start = startAfterLastSync, end = now)
         }
+    }
+
+    /**
+     * True when any Activity is started/resumed. Reads the process lifecycle on the main thread,
+     * which reflects UI foreground state and is not skewed by this background worker running.
+     */
+    private suspend fun isAppInForeground(): Boolean = withContext(Dispatchers.Main) {
+        ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
     }
 
     private data class ReadWindow(val start: Instant, val end: Instant)
@@ -124,5 +156,6 @@ class BackgroundHealthCoordinator(
     companion object {
         private val MAX_WINDOW: Duration = Duration.ofHours(24)
         private const val TAG = "BackgroundHealthSync"
+        private val runMutex = Mutex()
     }
 }

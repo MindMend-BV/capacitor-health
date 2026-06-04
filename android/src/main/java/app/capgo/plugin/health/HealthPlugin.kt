@@ -90,7 +90,7 @@ class HealthPlugin : Plugin() {
                 return@launch
             }
 
-            val granted = client.permissionController.getGrantedPermissions()
+            val granted = manager.getGrantedPermissionsSafe(client)
             if (granted.containsAll(permissions)) {
                 val status = manager.authorizationStatus(client, readTypes, writeTypes, includeWorkouts)
                 call.resolve(status)
@@ -302,7 +302,7 @@ class HealthPlugin : Plugin() {
         pluginScope.launch {
             val client = getClientOrReject(call) ?: return@launch
             val requiredHealthPermissions = manager.permissionsFor(config.dataTypes, emptyList())
-            val grantedPermissions = client.permissionController.getGrantedPermissions()
+            val grantedPermissions = manager.getGrantedPermissionsSafe(client)
             if (!grantedPermissions.containsAll(requiredHealthPermissions)) {
                 pendingConfigureBackgroundSync = true
                 pendingReadTypes = config.dataTypes
@@ -351,6 +351,26 @@ class HealthPlugin : Plugin() {
 
     @PluginMethod
     fun stopBackgroundSync(call: PluginCall) {
+        val clearConfiguration = call.getBoolean("clearConfiguration", false) ?: false
+        if (clearConfiguration) {
+            pluginScope.launch {
+                try {
+                    backgroundScheduler.cancel()
+                    backgroundPreferences.clearConfiguration()
+                    val isBgSyncAvailable = isBackgroundSyncAvailable()
+                    call.resolve(
+                        JSObject().apply {
+                            put("isBgSyncAvailable", isBgSyncAvailable)
+                            put("isBgPermissionsGranted", false)
+                            put("isBgSyncScheduled", false)
+                        }
+                    )
+                } catch (e: Exception) {
+                    call.reject(e.message ?: "Failed to stop background sync.", null, e)
+                }
+            }
+            return
+        }
         rejectIfBackgroundSyncUnavailable(call)?.let { return }
         pluginScope.launch {
             try {
@@ -389,9 +409,23 @@ class HealthPlugin : Plugin() {
                     buildBackgroundSyncStatus(config, client, isBgSyncAvailable, isPermissionsGranted)
                 )
             } catch (e: Exception) {
-                call.reject(e.message ?: "Failed to get background sync status.", null, e)
+                call.reject(
+                    "Failed to get background sync status: ${rootCauseMessage(e)}",
+                    null,
+                    e
+                )
             }
         }
+    }
+
+    private fun rootCauseMessage(error: Throwable): String {
+        var current: Throwable = error
+        while (current.cause != null && current.cause !== current) {
+            current = current.cause!!
+        }
+        val type = current::class.java.simpleName
+        val message = current.message ?: "unknown error"
+        return "$type: $message"
     }
 
     private fun parseTypeList(call: PluginCall, key: String): List<HealthDataType> {

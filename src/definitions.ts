@@ -1,27 +1,35 @@
-export type HealthDataType =
-  | 'steps'
-  | 'distance'
-  | 'calories'
-  | 'heartRate'
-  | 'weight'
-  | 'sleep'
-  | 'respiratoryRate'
-  | 'oxygenSaturation'
-  | 'restingHeartRate'
-  | 'heartRateVariability'
-  | 'bloodPressure'
-  | 'bloodGlucose'
-  | 'bodyTemperature'
-  | 'height'
-  | 'flightsClimbed'
-  | 'exerciseTime'
-  | 'distanceCycling'
-  | 'bodyFat'
-  | 'basalBodyTemperature'
-  | 'basalCalories'
-  | 'totalCalories'
-  | 'mindfulness'
-  | 'workouts';
+/** Canonical identifiers used as runtime allow-list and type source. */
+export const HEALTH_DATA_TYPES = [
+  'steps',
+  'distance',
+  'calories',
+  'heartRate',
+  'weight',
+  'sleep',
+  'respiratoryRate',
+  'oxygenSaturation',
+  'restingHeartRate',
+  'heartRateVariability',
+  'bloodPressure',
+  'bloodGlucose',
+  'bodyTemperature',
+  'height',
+  'flightsClimbed',
+  'exerciseTime',
+  'distanceCycling',
+  'bodyFat',
+  'basalBodyTemperature',
+  'basalCalories',
+  'totalCalories',
+  'mindfulness',
+  'workouts',
+] as const;
+
+export type HealthDataType = (typeof HEALTH_DATA_TYPES)[number];
+
+export function isHealthDataType(value: string): value is HealthDataType {
+  return (HEALTH_DATA_TYPES as readonly string[]).includes(value);
+}
 
 export type HealthUnit =
   | 'count'
@@ -110,17 +118,22 @@ export interface BackgroundSyncOptions {
   subjectId: string;
   /**
    * Backend endpoint used to fetch the last synced timestamp for each datatype.
-   * Expected response shape: `{ data: { lastSyncByDataType: Partial<Record<HealthDataType, string>> } }`.
+   * Configure URL to the collection base (e.g. `/api/health/signal-last-sync`); the native worker appends
+   * `/{urlEncodedSubjectId}`. Expected MindMend / AD-027 list shape:
+   * `{ data: { items: { dataType: HealthDataType; lastSyncAt: string }[], meta: … } }`.
    */
   getLastSync: BackgroundSyncApiRequestOptions;
   /**
    * Backend endpoint used to upload background-collected samples.
-   * Current Android upload body shape: `{ subjectId, data: HealthSample[] }`.
+   * MindMend / AD-028 body: `{ data: { healthSubjectId, sourcePlatform?, samples: HealthSample[] } }`.
    */
   postSamples: BackgroundSyncApiRequestOptions;
   /** Datatypes that should be read during background sync. */
   dataTypes: HealthDataType[];
-  /** Requested Android periodic sync interval. Actual execution remains inexact per WorkManager rules. */
+  /**
+   * Requested background sync interval. Android: WorkManager periodic (inexact). iOS: HealthKit delivery
+   * frequency + BGAppRefreshTask fallback (best-effort).
+   */
   interval: BackgroundSyncInterval;
 }
 
@@ -130,10 +143,15 @@ export interface BackgroundSyncStatus {
   /** Whether the required native permissions are currently granted. */
   isBgPermissionsGranted: boolean;
   /**
-   * Android: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`.
-   * Does not reflect WorkManager runtime state.
+   * Native: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`.
+   * Android: does not reflect WorkManager runtime state. iOS: does not reflect live observer state.
    */
   isBgSyncScheduled: boolean;
+}
+
+export interface StopBackgroundSyncOptions {
+  /** When true, removes persisted sync configuration (URLs, headers, subjectId) in addition to disabling sync. */
+  clearConfiguration?: boolean;
 }
 
 export type WorkoutType =
@@ -458,7 +476,7 @@ export interface HealthPlugin {
   /**
    * Disables native background health sync.
    */
-  stopBackgroundSync(): Promise<BackgroundSyncStatus>;
+  stopBackgroundSync(options?: StopBackgroundSyncOptions): Promise<BackgroundSyncStatus>;
 
   /**
    * Returns the current background sync configuration and runtime status.

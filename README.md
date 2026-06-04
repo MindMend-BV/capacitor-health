@@ -339,7 +339,7 @@ const { samples: avgHR } = await Health.queryAggregated({
 * [`queryAggregated(...)`](#queryaggregated)
 * [`configureBackgroundSync(...)`](#configurebackgroundsync)
 * [`startBackgroundSync()`](#startbackgroundsync)
-* [`stopBackgroundSync()`](#stopbackgroundsync)
+* [`stopBackgroundSync(...)`](#stopbackgroundsync)
 * [`getBackgroundSyncStatus()`](#getbackgroundsyncstatus)
 * [Interfaces](#interfaces)
 * [Type Aliases](#type-aliases)
@@ -546,13 +546,17 @@ On Android this schedules periodic work after required permissions are granted.
 --------------------
 
 
-### stopBackgroundSync()
+### stopBackgroundSync(...)
 
 ```typescript
-stopBackgroundSync() => Promise<BackgroundSyncStatus>
+stopBackgroundSync(options?: StopBackgroundSyncOptions | undefined) => Promise<BackgroundSyncStatus>
 ```
 
 Disables native background health sync.
+
+| Param         | Type                                                                            |
+| ------------- | ------------------------------------------------------------------------------- |
+| **`options`** | <code><a href="#stopbackgroundsyncoptions">StopBackgroundSyncOptions</a></code> |
 
 **Returns:** <code>Promise&lt;<a href="#backgroundsyncstatus">BackgroundSyncStatus</a>&gt;</code>
 
@@ -586,20 +590,20 @@ Returns the current background sync configuration and runtime status.
 
 #### AuthorizationStatus
 
-| Prop                  | Type                          |
-| --------------------- | ----------------------------- |
-| **`readAuthorized`**  | <code>HealthDataType[]</code> |
-| **`readDenied`**      | <code>HealthDataType[]</code> |
-| **`writeAuthorized`** | <code>HealthDataType[]</code> |
-| **`writeDenied`**     | <code>HealthDataType[]</code> |
+| Prop                  | Type                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`readAuthorized`**  | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> |
+| **`readDenied`**      | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> |
+| **`writeAuthorized`** | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> |
+| **`writeDenied`**     | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> |
 
 
 #### AuthorizationOptions
 
-| Prop        | Type                          | Description                                             |
-| ----------- | ----------------------------- | ------------------------------------------------------- |
-| **`read`**  | <code>HealthDataType[]</code> | Data types that should be readable after authorization. |
-| **`write`** | <code>HealthDataType[]</code> | Data types that should be writable after authorization. |
+| Prop        | Type                                                                                                                                                                                                                                                                                                                                                                                                                               | Description                                             |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **`read`**  | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> | Data types that should be readable after authorization. |
+| **`write`** | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> | Data types that should be writable after authorization. |
 
 
 #### ReadSamplesResult
@@ -717,22 +721,22 @@ Returns the current background sync configuration and runtime status.
 
 #### BackgroundSyncStatus
 
-| Prop                         | Type                 | Description                                                                                                                                      |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.                                                                            |
-| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                                                                                   |
-| **`isBgSyncScheduled`**      | <code>boolean</code> | Android: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`. Does not reflect WorkManager runtime state. |
+| Prop                         | Type                 | Description                                                                                                                                                                                         |
+| ---------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`isBgSyncAvailable`**      | <code>boolean</code> | Whether background sync is supported on the current runtime platform.                                                                                                                               |
+| **`isBgPermissionsGranted`** | <code>boolean</code> | Whether the required native permissions are currently granted.                                                                                                                                      |
+| **`isBgSyncScheduled`**      | <code>boolean</code> | Native: true after `startBackgroundSync()` (persisted enabled), false after `stopBackgroundSync()`. Android: does not reflect WorkManager runtime state. iOS: does not reflect live observer state. |
 
 
 #### BackgroundSyncOptions
 
-| Prop              | Type                                                                                        | Description                                                                                                                                                                                                                                       |
-| ----------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`subjectId`**   | <code>string</code>                                                                         | Subject identifier sent in request body to correlate sync records server-side.                                                                                                                                                                    |
-| **`getLastSync`** | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code> | Backend endpoint used to fetch the last synced timestamp for each datatype. Expected response shape: `{ data: { lastSyncByDataType: Partial&lt;<a href="#record">Record</a>&lt;<a href="#healthdatatype">HealthDataType</a>, string&gt;&gt; } }`. |
-| **`postSamples`** | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code> | Backend endpoint used to upload background-collected samples. Current Android upload body shape: `{ subjectId, data: HealthSample[] }`.                                                                                                           |
-| **`dataTypes`**   | <code>HealthDataType[]</code>                                                               | Datatypes that should be read during background sync.                                                                                                                                                                                             |
-| **`interval`**    | <code><a href="#backgroundsyncinterval">BackgroundSyncInterval</a></code>                   | Requested Android periodic sync interval. Actual execution remains inexact per WorkManager rules.                                                                                                                                                 |
+| Prop              | Type                                                                                                                                                                                                                                                                                                                                                                                                                               | Description                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **`subjectId`**   | <code>string</code>                                                                                                                                                                                                                                                                                                                                                                                                                | Subject identifier sent in request body to correlate sync records server-side.                                                                                                                                                                                                                                                                                       |
+| **`getLastSync`** | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code>                                                                                                                                                                                                                                                                                                                                        | Backend endpoint used to fetch the last synced timestamp for each datatype. Configure URL to the collection base (e.g. `/api/health/signal-last-sync`); the native worker appends `/{urlEncodedSubjectId}`. Expected MindMend / AD-027 list shape: `{ data: { items: { dataType: <a href="#healthdatatype">HealthDataType</a>; lastSyncAt: string }[], meta: … } }`. |
+| **`postSamples`** | <code><a href="#backgroundsyncapirequestoptions">BackgroundSyncApiRequestOptions</a></code>                                                                                                                                                                                                                                                                                                                                        | Backend endpoint used to upload background-collected samples. MindMend / AD-028 body: `{ data: { healthSubjectId, sourcePlatform?, samples: HealthSample[] } }`.                                                                                                                                                                                                     |
+| **`dataTypes`**   | <code>('steps' \| 'distance' \| 'calories' \| 'heartRate' \| 'weight' \| 'sleep' \| 'respiratoryRate' \| 'oxygenSaturation' \| 'restingHeartRate' \| 'heartRateVariability' \| 'bloodPressure' \| 'bloodGlucose' \| 'bodyTemperature' \| 'height' \| 'flightsClimbed' \| 'exerciseTime' \| 'distanceCycling' \| 'bodyFat' \| 'basalBodyTemperature' \| 'basalCalories' \| 'totalCalories' \| 'mindfulness' \| 'workouts')[]</code> | Datatypes that should be read during background sync.                                                                                                                                                                                                                                                                                                                |
+| **`interval`**    | <code><a href="#backgroundsyncinterval">BackgroundSyncInterval</a></code>                                                                                                                                                                                                                                                                                                                                                          | Requested background sync interval. Android: WorkManager periodic (inexact). iOS: HealthKit delivery frequency + BGAppRefreshTask fallback (best-effort).                                                                                                                                                                                                            |
 
 
 #### BackgroundSyncApiRequestOptions
@@ -743,12 +747,19 @@ Returns the current background sync configuration and runtime status.
 | **`headers`** | <code><a href="#record">Record</a>&lt;string, string&gt;</code> | Optional HTTP headers persisted for native background sync requests. |
 
 
+#### StopBackgroundSyncOptions
+
+| Prop                     | Type                 | Description                                                                                               |
+| ------------------------ | -------------------- | --------------------------------------------------------------------------------------------------------- |
+| **`clearConfiguration`** | <code>boolean</code> | When true, removes persisted sync configuration (URLs, headers, subjectId) in addition to disabling sync. |
+
+
 ### Type Aliases
 
 
 #### HealthDataType
 
-<code>'steps' | 'distance' | 'calories' | 'heartRate' | 'weight' | 'sleep' | 'respiratoryRate' | 'oxygenSaturation' | 'restingHeartRate' | 'heartRateVariability' | 'bloodPressure' | 'bloodGlucose' | 'bodyTemperature' | 'height' | 'flightsClimbed' | 'exerciseTime' | 'distanceCycling' | 'bodyFat' | 'basalBodyTemperature' | 'basalCalories' | 'totalCalories' | 'mindfulness' | 'workouts'</code>
+<code>(typeof HEALTH_DATA_TYPES)[number]</code>
 
 
 #### HealthUnit
